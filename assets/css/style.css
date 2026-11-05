@@ -393,6 +393,17 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* --- Hide Scrollbar Utility --- */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
 /* --- Print & Export Rules --- */
 @media print {
   body {

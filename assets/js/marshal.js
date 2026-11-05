@@ -337,6 +337,24 @@ function setupEventListeners() {
 /**
  * Logika Asisten Data Gemini AI
  */
+function closeAndClearGeminiChat() {
+  const modal = document.getElementById("modal-gemini-chat");
+  if (modal) {
+    modal.classList.add("hidden");
+  }
+  // Auto-clear riwayat obrolan kembali ke salam pembuka
+  const chatLog = document.getElementById("gemini-chat-log");
+  if (chatLog) {
+    chatLog.innerHTML = `
+      <div class="bg-purple-50 text-purple-900 border border-purple-100 rounded-2xl rounded-tl-none p-4 text-xs sm:text-sm leading-relaxed max-w-lg shadow-sm">
+        Halo Panitia Bidang SMP! Saya siap menganalisis data respon evaluasi khusus untuk kegiatan yang sedang aktif saat ini. Anda dapat mengklik tombol pintasan di atas atau mengetik pertanyaan bebas di bawah.
+      </div>
+    `;
+  }
+  const input = document.getElementById("input-gemini-query");
+  if (input) input.value = "";
+}
+
 function setupGeminiAssistant() {
   const geminiCard = document.getElementById("gemini-widget-trigger");
   const modal = document.getElementById("modal-gemini-chat");
@@ -349,8 +367,15 @@ function setupGeminiAssistant() {
   }
 
   if (closeBtn) {
-    closeBtn.onclick = () => {
-      modal.classList.add("hidden");
+    closeBtn.onclick = closeAndClearGeminiChat;
+  }
+
+  // Tutup & Clear jika klik backdrop di luar box
+  if (modal) {
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        closeAndClearGeminiChat();
+      }
     };
   }
 

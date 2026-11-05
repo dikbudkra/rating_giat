@@ -527,17 +527,45 @@ function handleAskGemini(params) {
     const r = data[i];
     if (String(r[1]) === String(activeId)) {
       totalRespon++;
-      const bintang = r[12];
-      totalBintang += parseFloat(bintang) || 0;
+      const wkt = formatGasIndoDate(r[2]);
+      const mode = String(r[3]); // DATA / ANONYMOUS
+      const isAnon = mode === "ANONYMOUS";
+      const nama = isAnon ? "(Disamarkan / Mode Anonim)" : String(r[4] || "-");
+      const sekolah = isAnon ? "(Disamarkan / Mode Anonim)" : String(r[5] || "-");
+      const jabatan = String(r[6] || "-");
+      
+      const skorNara = r[7];
+      const skorMat = r[8];
+      const skorPan = r[9];
+      const skorKep = r[10];
+      const rataKeg = r[11];
+      const bintangKeg = r[12];
+      totalBintang += parseFloat(bintangKeg) || 0;
+
+      const skorTmpFas = r[13];
+      const skorTmpPel = r[14];
+      const rataTmp = r[15];
+      const bintangTmp = r[16];
+
       const saran = r[17] ? String(r[17]).trim() : "-";
       const rekomendasi = r[18] ? String(r[18]).trim() : "-";
 
-      reviewsText.push(
-        "- Responden #" + totalRespon + " (" + r[6] + "): " +
-        "Bintang Keg: " + bintang + "/5.0. " +
-        (activeEvent.event.is_lokasi_active ? ("Bintang Tempat: " + r[16] + "/5.0. ") : "") +
-        "Saran: \"" + saran + "\". Rekomendasi Topik: \"" + rekomendasi + "\""
-      );
+      let rowDesc = 
+        "Responden #" + totalRespon + " [" + (isAnon ? "MODE: ANONIM" : "IDENTITAS RESMI") + "]:\n" +
+        "  • Nama Lengkap: " + nama + "\n" +
+        "  • Asal Satuan Pendidikan (SMP): " + sekolah + "\n" +
+        "  • Jabatan / Peran: " + jabatan + "\n" +
+        "  • Waktu Mengisi: " + wkt + "\n" +
+        "  • Nilai Mutu Kegiatan (1-10): Narasumber=" + skorNara + ", Materi=" + skorMat + ", Panitia=" + skorPan + ", Kepuasan=" + skorKep + " (Rata-rata: " + rataKeg + " | Bintang: " + bintangKeg + "/5.0)\n";
+
+      if (activeEvent.event.is_lokasi_active) {
+        rowDesc += "  • Nilai Tempat Acara (1-10): Fasilitas=" + skorTmpFas + ", Pelayanan=" + skorTmpPel + " (Bintang Tempat: " + bintangTmp + "/5.0)\n";
+      }
+
+      rowDesc += "  • Catatan & Saran Masukan: " + saran + "\n" +
+                 "  • Rekomendasi Topik Depan: " + rekomendasi;
+
+      reviewsText.push(rowDesc);
     }
   }
 
@@ -552,22 +580,24 @@ function handleAskGemini(params) {
   const promptUser = params.question || "Buatkan ringkasan eksekutif hasil evaluasi kegiatan ini.";
 
   const contextData = 
-    "KONTEKS KEGIATAN:\n" +
+    "KONTEKS KEGIATAN AKTIF:\n" +
     "- Nama Kegiatan: " + activeEvent.event.nama_kegiatan + "\n" +
     "- Tanggal: " + activeEvent.event.tanggal + "\n" +
     "- Tempat: " + activeEvent.event.tempat + "\n" +
-    "- Penilaian Fasilitas Tempat Aktif: " + (activeEvent.event.is_lokasi_active ? "YA" : "TIDAK") + "\n" +
+    "- Evaluasi Tempat Acara Aktif: " + (activeEvent.event.is_lokasi_active ? "YA" : "TIDAK") + "\n" +
     "- Total Responden: " + totalRespon + " orang\n" +
     "- Rata-rata Bintang Kegiatan: " + avgBintang + " / 5.00\n\n" +
-    "DATA MASUKAN PESERTA (HANYA DARI KEGIATAN INI):\n" +
-    reviewsText.slice(0, 150).join("\n") + "\n\n" +
+    "DATA LENGKAP SHEET RESPON (HANYA DARI KEGIATAN INI):\n" +
+    reviewsText.slice(0, 150).join("\n\n") + "\n\n" +
     "PERTANYAAN / INSTRUKSI PANITIA:\n" +
     promptUser;
 
   const systemInstruction = 
     "Anda adalah Asisten Analisis Data Kegiatan Bidang SMP Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar. " +
-    "Jawab pertanyaan secara profesional, ringkas, terstruktur menggunakan bullet points, dan objektif berbasis data di atas. " +
-    "JANGAN mengarang data di luar konteks masukan peserta yang diberikan.";
+    "Data di atas diambil langsung dan lengkap dari Sheet RESPON Google Spreadsheet untuk kegiatan aktif saat ini. " +
+    "Jawab pertanyaan panitia secara profesional, ringkas, objektif, dan terstruktur berbasis data tersebut. " +
+    "Jika panitia menanyakan nama responden atau sekolah, sebutkan secara jelas dan presisi sesuai data di atas. " +
+    "Jangan mengarang data di luar konteks Sheet RESPON yang diberikan.";
 
   // Konfigurasi Payload Gemini
   const payload = {
