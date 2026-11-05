@@ -355,20 +355,20 @@
 
   <!-- MODAL QR CODE PROYEKTOR -->
   <div id="modal-qr" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-center space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="font-extrabold text-slate-800 text-base">QR Barcode Penilaian</h3>
-        <button onclick="document.getElementById('modal-qr').classList.add('hidden')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold">✕</button>
+        <h3 class="font-extrabold text-slate-800 text-base sm:text-lg">QR Barcode Penilaian</h3>
+        <button onclick="document.getElementById('modal-qr').classList.add('hidden')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition">✕</button>
       </div>
 
-      <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 inline-block">
-        <img id="qr-image-display" src="" alt="QR Barcode" class="w-56 h-56 mx-auto object-contain">
+      <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 inline-block shadow-inner">
+        <img id="qr-image-display" src="" alt="QR Barcode" class="w-72 h-72 sm:w-80 sm:h-80 mx-auto object-contain">
       </div>
 
       <div>
-        <p class="text-xs text-slate-500 mb-1">Tampilkan di proyektor aula untuk di-scan peserta:</p>
-        <div id="link-publik-url" class="font-mono text-xs text-orange-600 font-bold bg-orange-50 p-2 rounded-lg break-all mb-3"></div>
-        <button onclick="downloadQrAsJpg()" class="w-full py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs shadow transition flex items-center justify-center gap-2">
+        <p class="text-xs text-slate-500 mb-1.5 font-semibold">Tampilkan di proyektor aula untuk di-scan peserta:</p>
+        <div id="link-publik-url" class="font-mono text-base sm:text-lg text-orange-700 font-black bg-orange-50 border-2 border-orange-200/80 p-3.5 rounded-2xl break-all select-all shadow-inner tracking-wide mb-4"></div>
+        <button onclick="downloadQrAsJpg()" class="w-full py-3.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2">
           <span>📥</span> Unduh Barcode (JPG)
         </button>
       </div>

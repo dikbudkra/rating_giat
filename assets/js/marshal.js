@@ -209,7 +209,7 @@ function setupQrCode(event) {
   document.getElementById("link-publik-url").innerText = publicUrl;
 
   const qrImg = document.getElementById("qr-image-display");
-  qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(publicUrl)}`;
+  qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(publicUrl)}`;
 }
 
 /**
@@ -513,48 +513,99 @@ function downloadQrAsJpg() {
   img.src = qrImg.src;
 
   img.onload = () => {
-    const size = 640;
-    const padding = 50;
-    const bottomHeight = 140;
+    // Dimensi Kanvas Poster Tajam (High Resolution)
+    const width = 760;
+    const height = 1040;
+    canvas.width = width;
+    canvas.height = height;
 
-    canvas.width = size;
-    canvas.height = size + bottomHeight;
-
-    // Latar Belakang Putih
+    // 1. Latar Belakang Putih Bersih
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, width, height);
 
-    // Bingkai Tepi
+    // 2. Bingkai Luar Terracotta
     ctx.strokeStyle = "#EA580C";
-    ctx.lineWidth = 10;
-    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+    ctx.lineWidth = 14;
+    ctx.strokeRect(7, 7, width - 14, height - 14);
 
-    // Judul Header
-    ctx.fillStyle = "#7A2000";
-    ctx.font = "bold 26px 'Plus Jakarta Sans', Arial, sans-serif";
+    // 3. Garis Aksen Emas Tipis di Dalam
+    ctx.strokeStyle = "#FED7AA";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(20, 20, width - 40, height - 40);
+
+    // 4. Header Atas
     ctx.textAlign = "center";
-    ctx.fillText("SCAN PENILAIAN KEGIATAN", size / 2, 46);
-
-    // Gambar QR
-    ctx.drawImage(img, padding, 65, size - (padding * 2), size - (padding * 2));
-
-    // Nama Kegiatan & Metadata
-    ctx.fillStyle = "#1E293B";
-    ctx.font = "bold 20px 'Plus Jakarta Sans', Arial, sans-serif";
-    const eventName = currentDashboardData.event.nama_kegiatan || "Kegiatan SMP";
-    const truncatedName = eventName.length > 40 ? eventName.substring(0, 37) + "..." : eventName;
-    ctx.fillText(truncatedName, size / 2, size + 28);
+    ctx.fillStyle = "#7A2000";
+    ctx.font = "bold 30px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.fillText("SCAN PENILAIAN KEGIATAN", width / 2, 65);
 
     ctx.fillStyle = "#EA580C";
     ctx.font = "bold 15px 'Plus Jakarta Sans', Arial, sans-serif";
-    ctx.fillText("BIDANG SMP DISDIKBUD KARANGANYAR", size / 2, size + 60);
+    ctx.fillText("BIDANG SMP DISDIKBUD KABUPATEN KARANGANYAR", width / 2, 95);
 
+    // 5. Container & Gambar Barcode QR
+    const qrSize = 520;
+    const qrX = (width - qrSize) / 2;
+    const qrY = 120;
+
+    // Border kotak penampung QR
+    ctx.fillStyle = "#F8FAFC";
+    ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
+    ctx.strokeStyle = "#E2E8F0";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
+
+    // Gambar QR
+    ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+
+    // 6. Nama Kegiatan & Info Waktu/Tempat
+    const eventName = currentDashboardData.event.nama_kegiatan || "Kegiatan SMP";
+    const truncatedName = eventName.length > 45 ? eventName.substring(0, 42) + "..." : eventName;
+
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 24px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.fillText(truncatedName.toUpperCase(), width / 2, 695);
+
+    ctx.fillStyle = "#475569";
+    ctx.font = "bold 15px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.fillText("📅 " + formatDateIndo(currentDashboardData.event.tanggal) + "  •  📍 " + (currentDashboardData.event.tempat || "-"), width / 2, 725);
+
+    // 7. KOTAK PROMINEN ALAMAT WEB (SANGAT JELAS)
+    const publicUrl = window.location.origin + window.location.pathname.replace(/\/marshal\/?.*$/, "") + "/";
+    const urlBoxX = 50;
+    const urlBoxY = 750;
+    const urlBoxWidth = width - 100;
+    const urlBoxHeight = 110;
+
+    // Background Kotak URL
+    ctx.fillStyle = "#FFF7ED";
+    ctx.fillRect(urlBoxX, urlBoxY, urlBoxWidth, urlBoxHeight);
+    ctx.strokeStyle = "#EA580C";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(urlBoxX, urlBoxY, urlBoxWidth, urlBoxHeight);
+
+    // Label dalam Kotak
+    ctx.fillStyle = "#9A3412";
+    ctx.font = "bold 13px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.fillText("🌐 LINK ALAMAT WEB PENILAIAN (JIKA TIDAK SCAN QR):", width / 2, urlBoxY + 32);
+
+    // Alamat URL Tebal & Sangat Jelas
+    ctx.fillStyle = "#C2410C";
+    ctx.font = "bold 23px 'Courier New', monospace, sans-serif";
+    ctx.fillText(publicUrl, width / 2, urlBoxY + 72);
+
+    // 8. Petunjuk Singkat
     ctx.fillStyle = "#64748B";
     ctx.font = "14px 'Plus Jakarta Sans', Arial, sans-serif";
-    ctx.fillText("📅 " + formatDateIndo(currentDashboardData.event.tanggal) + "  •  📍 " + (currentDashboardData.event.tempat || "-"), size / 2, size + 92);
+    ctx.fillText("Arahkan kamera HP ke Barcode di atas atau ketik alamat web tersebut.", width / 2, 905);
+
+    // 9. Watermark / Footer JeMPROT
+    ctx.fillStyle = "#94A3B8";
+    ctx.font = "bold 12px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.fillText("⭐ PORTAL PENILAIAN KEGIATAN • BIDANG SMP KAB. KARANGANYAR ⭐", width / 2, 985);
 
     // Export sebagai JPG
-    const jpgUrl = canvas.toDataURL("image/jpeg", 0.95);
+    const jpgUrl = canvas.toDataURL("image/jpeg", 0.96);
     const link = document.createElement("a");
     const cleanFileName = `QR_Penilaian_${eventName.replace(/[\/\\?*\[\]:]/g, "-")}.jpg`;
     link.download = cleanFileName;
@@ -564,7 +615,7 @@ function downloadQrAsJpg() {
     document.body.removeChild(link);
 
     hideLoader();
-    showToast("Barcode JPG berhasil disimpan ke perangkat Anda!", "success", "Unduh Selesai");
+    showToast("Barcode JPG beresolusi tinggi berhasil diunduh!", "success", "Unduh Selesai");
   };
 
   img.onerror = () => {
