@@ -10,31 +10,35 @@ let currentActiveEvent = null;
 
 async function initApp() {
   const splashScreen = document.getElementById("splash-screen");
-  
+  const startTime = Date.now();
+  let data = null;
+  let fetchError = null;
+
   try {
     // 1. Ambil status kegiatan aktif dari Google Apps Script
     const response = await fetch(`${CONFIG.GAS_WEB_APP_URL}?action=getActiveEvent`);
-    const data = await response.json();
-
-    // Beri sedikit jeda agar animasi logo splash screen terlihat elegan (minimal 1 detik)
-    setTimeout(() => {
-      if (splashScreen) splashScreen.classList.add("fade-out");
-      
-      if (data.status === "ACTIVE" && data.event) {
-        currentActiveEvent = data.event;
-        renderActiveEvent(data.event);
-      } else {
-        renderStandbyView();
-      }
-    }, 1000);
-
+    data = await response.json();
   } catch (error) {
     console.error("Gagal memuat status kegiatan:", error);
-    setTimeout(() => {
-      if (splashScreen) splashScreen.classList.add("fade-out");
-      renderStandbyView("Gagal terhubung ke server atau URL Web App belum disetel.");
-    }, 1000);
+    fetchError = error;
   }
+
+  // Waktu tunggu animasi logo tepat 4 detik (4000 ms)
+  const elapsedTime = Date.now() - startTime;
+  const remainingTime = Math.max(0, 4000 - elapsedTime);
+
+  setTimeout(() => {
+    if (splashScreen) splashScreen.classList.add("fade-out");
+    
+    if (data && data.status === "ACTIVE" && data.event) {
+      currentActiveEvent = data.event;
+      renderActiveEvent(data.event);
+    } else if (fetchError) {
+      renderStandbyView("Gagal terhubung ke server atau periksa koneksi internet.");
+    } else {
+      renderStandbyView();
+    }
+  }, remainingTime);
 }
 
 /**

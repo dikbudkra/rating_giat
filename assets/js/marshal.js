@@ -11,11 +11,18 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initMarshal() {
-  if (!marshalPassword) {
-    showLoginModal();
-  } else {
-    loadDashboardData();
-  }
+  const splashScreen = document.getElementById("splash-screen");
+
+  // Animasi Splash Screen selama tepat 4 detik (4000 ms)
+  setTimeout(() => {
+    if (splashScreen) splashScreen.classList.add("fade-out");
+
+    if (!marshalPassword) {
+      showLoginModal();
+    } else {
+      loadDashboardData();
+    }
+  }, 4000);
 
   setupEventListeners();
 }
