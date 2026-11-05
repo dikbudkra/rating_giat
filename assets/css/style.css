@@ -1,0 +1,276 @@
+/* ==========================================================================
+   RATING GIAT - BIDANG SMP DISDIKBUD KARANGANYAR
+   Styles & Custom Animations
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --color-primary-dark: #7A2000;
+  --color-primary-mid: #C44300;
+  --color-primary: #EA580C;
+  --color-gold: #F59E0B;
+  --color-blue: #2563EB;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: #F8FAFC;
+  color: #1E293B;
+  min-height: 100vh;
+  padding-bottom: 70px; /* Jarak untuk Sticky Persistent Footer */
+}
+
+/* --- Splash Screen --- */
+#splash-screen {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, #FFFFFF 0%, #F1F5F9 100%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
+}
+
+#splash-screen.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-logo-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-logo-glow {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(234, 88, 12, 0.35) 0%, rgba(234, 88, 12, 0) 70%);
+  border-radius: 50%;
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+.splash-logo {
+  width: 96px;
+  height: auto;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.12));
+  animation: floatSoft 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 0.9; }
+}
+
+@keyframes floatSoft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* --- Terracotta Kedinasan Header Gradient --- */
+.bg-terracotta-header {
+  background: linear-gradient(135deg, #7A2000 0%, #B83A00 45%, #EA580C 100%);
+}
+
+/* --- Standby Card (Sesuai Referensi Gambar Pengguna) --- */
+.standby-card {
+  border-left: 6px solid #DC2626;
+  border-radius: 1.25rem;
+  background: #FFFFFF;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06);
+}
+
+.lock-squircle {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 16px -4px rgba(220, 38, 38, 0.35);
+}
+
+/* --- Radio Buttons 1-10 (2 Baris Simetris 1-5 & 6-10) --- */
+.rating-pills-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rating-pill-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid #E2E8F0;
+  background-color: #FFFFFF;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.rating-pill-label:hover {
+  border-color: #94A3B8;
+  background-color: #F8FAFC;
+}
+
+.rating-pill-input:checked + .rating-pill-label {
+  background-color: var(--color-blue);
+  border-color: var(--color-blue);
+  color: #FFFFFF;
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px -2px rgba(37, 99, 235, 0.4);
+}
+
+/* --- Bintang Besar Pecahan (Fractional Star Display) --- */
+.star-display-container {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.star-box {
+  position: relative;
+  display: inline-block;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: #CBD5E1; /* Bintang kosong */
+}
+
+.star-box.active {
+  color: #F59E0B; /* Bintang penuh emas */
+}
+
+.star-box .star-fill-clip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  color: #F59E0B;
+  white-space: nowrap;
+}
+
+/* --- Gemini Assistant Widget (Sesuai Referensi Gambar Pengguna) --- */
+.gemini-widget-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 1.25rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.gemini-widget-card:hover {
+  border-color: #C084FC;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(192, 132, 252, 0.18);
+}
+
+.gemini-icon-squircle {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #818CF8 0%, #A855F7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 6px 16px -2px rgba(168, 85, 247, 0.35);
+}
+
+.gemini-badge {
+  background: #FAF5FF;
+  border: 1px solid #E9D5FF;
+  color: #7E22CE;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gemini-arrow-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #2563EB;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.gemini-widget-card:hover .gemini-arrow-btn {
+  transform: scale(1.1);
+}
+
+/* --- Sticky Persistent Footer --- */
+.sticky-app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid #E2E8F0;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 40;
+}
+
+.sticky-app-footer .footer-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+  letter-spacing: 0.05em;
+}
+
+.sticky-app-footer .footer-logo {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
+}
+
+.sticky-app-footer .footer-badge {
+  font-size: 11px;
+  font-weight: 800;
+  color: #EA580C;
+}
+
+/* --- Print & Export Rules --- */
+@media print {
+  body {
+    padding-bottom: 0;
+    background: white;
+  }
+  .sticky-app-footer, .no-print {
+    display: none !important;
+  }
+}

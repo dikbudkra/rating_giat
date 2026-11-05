@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Marshal - Penilaian Kegiatan Bidang SMP</title>
+
+  <!-- Tailwind CSS, JSPDF & Autotable -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1e1LH5ZgYyLjclSNXwMAU5Zy_PKiju5z-">
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased selection:bg-orange-500 selection:text-white">
+
+  <!-- =========================================================================
+       1. HEADER BANNER KEDINASAN
+       ========================================================================= -->
+  <header class="bg-terracotta-header text-white shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+      
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-white rounded-2xl p-1.5 flex items-center justify-center shadow flex-shrink-0">
+          <img 
+            src="https://lh3.googleusercontent.com/d/1e1LH5ZgYyLjclSNXwMAU5Zy_PKiju5z-" 
+            alt="Logo Karanganyar" 
+            class="h-full w-auto object-contain">
+        </div>
+        <div>
+          <div class="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase mb-0.5">
+            <span>🛡️</span> PANEL KENDALI OPERATOR
+          </div>
+          <h1 class="text-base sm:text-lg font-black tracking-tight">
+            PANEL MARSHAL KEGIATAN
+          </h1>
+          <p class="text-xs text-orange-100">
+            Bidang SMP - Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar
+          </p>
+        </div>
+      </div>
+
+      <!-- Status & Aksi -->
+      <div class="flex items-center gap-3">
+        <span id="badge-status-kegiatan" class="px-3 py-1 bg-white/20 text-white text-xs font-bold rounded-full">
+          STATUS: MEMUAT...
+        </span>
+        <a href="../" target="_blank" class="hidden sm:inline-flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/20 transition">
+          <span>↗</span> Lihat Web Publik
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. KONTEN UTAMA MARSHAL
+       ========================================================================= -->
+  <main class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+
+    <!-- ==========================================
+         A. KONDISI STANDBY: FORM BUAT KEGIATAN BARU
+         ========================================== -->
+    <div id="dashboard-standby" class="hidden">
+      <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm max-w-2xl mx-auto">
+        <div class="text-center mb-6">
+          <div class="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-3">
+            ✨
+          </div>
+          <h2 class="text-xl font-black text-slate-800">Buka Sesi Penilaian Kegiatan Baru</h2>
+          <p class="text-xs text-slate-500 mt-1">
+            Isi rincian kegiatan di bawah ini untuk membuka akses formulir bagi peserta.
+          </p>
+        </div>
+
+        <form id="form-create-event" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Nama Kegiatan Resmi</label>
+            <input type="text" id="create-nama-kegiatan" required placeholder="Contoh: Workshop Satuan Pendidikan Aman Bencana (SPAB)" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Pelaksanaan</label>
+              <input type="date" id="create-tanggal" required class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tempat / Lokasi Acara</label>
+              <input type="text" id="create-tempat" required placeholder="Contoh: Aula Ki Hajar Dewantara / Hotel X" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
+            </div>
+          </div>
+
+          <!-- Toggle Penilaian Tempat Acara -->
+          <div class="p-4 rounded-xl bg-orange-50/60 border border-orange-200 flex items-start gap-3">
+            <input type="checkbox" id="create-is-lokasi" class="mt-1 w-4 h-4 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer">
+            <label for="create-is-lokasi" class="cursor-pointer">
+              <span class="block text-xs font-extrabold text-orange-900">Aktifkan Penilaian Tempat Acara (Fasilitas & Pelayanan Gedung)</span>
+              <span class="block text-[11px] text-orange-700 mt-0.5">Centang jika kegiatan diadakan di hotel/gedung sewa dan membutuhkan evaluasi vendor/fasilitas fisik terpisah.</span>
+            </label>
+          </div>
+
+          <div class="pt-2">
+            <button type="submit" id="btn-submit-create-event" class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-extrabold text-sm shadow-md transition">
+              🚀 Buka Sesi Penilaian Sekarang
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         B. KONDISI AKTIF: DASHBOARD REALTIME
+         ========================================== -->
+    <div id="dashboard-active" class="hidden space-y-6">
+
+      <!-- Header Kegiatan Aktif & Tombol QR -->
+      <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="inline-block bg-green-100 text-green-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">
+            ● SEDANG BERLANGSUNG
+          </span>
+          <h2 id="dash-event-title" class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight"></h2>
+          <p id="dash-event-meta" class="text-xs sm:text-sm text-slate-500 font-medium mt-1"></p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button onclick="document.getElementById('modal-qr').classList.remove('hidden')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow transition">
+            <span>📱</span> Tampilkan Barcode Proyektor
+          </button>
+          <button onclick="loadDashboardData()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition" title="Muat Ulang Data">
+            🔄
+          </button>
+        </div>
+      </div>
+
+      <!-- Ringkasan Metrik & Bintang Besar -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        
+        <!-- Live Counter -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Responden Masuk</span>
+            <div id="metric-total-responden" class="text-4xl font-black text-slate-900 tracking-tight">0</div>
+            <span class="text-xs font-semibold text-green-600 flex items-center gap-1 mt-1">
+              <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Terkoneksi Realtime
+            </span>
+          </div>
+          <div class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-2xl font-black">
+            👥
+          </div>
+        </div>
+
+        <!-- Bintang Mutu Kegiatan -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Rata-rata Mutu Kegiatan</span>
+          <div id="dash-stars-kegiatan" class="star-display-container mb-1"></div>
+          <div id="dash-score-kegiatan" class="text-2xl font-black text-slate-800">0.00 / 5.00</div>
+        </div>
+
+        <!-- Bintang Tempat Acara (Kondisional) -->
+        <div id="box-metric-tempat" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hidden">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Rata-rata Fasilitas Tempat</span>
+          <div id="dash-stars-tempat" class="star-display-container mb-1"></div>
+          <div id="dash-score-tempat" class="text-2xl font-black text-slate-800">0.00 / 5.00</div>
+        </div>
+
+      </div>
+
+      <!-- WIDGET ASISTEN DATA KEGIATAN (GEMINI AI) SESUAI REFERENSI GAMBAR PENGGUNA -->
+      <div id="gemini-widget-trigger" class="gemini-widget-card">
+        <div class="flex items-center gap-4">
+          <div class="gemini-icon-squircle">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="text-xs font-extrabold text-slate-500">Asisten Data Kegiatan</span>
+              <span class="gemini-badge">✦ Gemini AI</span>
+            </div>
+            <div class="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+              Silahkan Tanya Disini
+            </div>
+          </div>
+        </div>
+        <div class="gemini-arrow-btn">
+          ↗
+        </div>
+      </div>
+
+      <!-- Tabel Respon Masukan Peserta -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-extrabold text-slate-800 text-sm sm:text-base">Daftar Masukan & Evaluasi Responden</h3>
+            <p class="text-xs text-slate-400">Data live dari Google Spreadsheet (Sheet RESPON)</p>
+          </div>
+          <span class="text-xs font-semibold text-slate-500">Hanya menampilkan kegiatan aktif saat ini</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 text-[11px] font-black text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                <th class="py-3 px-3">No</th>
+                <th class="py-3 px-3">Responden</th>
+                <th class="py-3 px-3">Nilai</th>
+                <th class="py-3 px-3">Saran & Masukan</th>
+                <th class="py-3 px-3">Rekomendasi Topik Berikutnya</th>
+              </tr>
+            </thead>
+            <tbody id="table-responses-body">
+              <!-- Baris diisi secara dinamis -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- KONTROL PENGARSIPAN & RESET (DENGAN PENGAMAN STRICT) -->
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div>
+          <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
+            <span>🛡️</span> Ekspor Laporan & Pengarsipan Selesai Acara
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Demi keamanan data kedinasan, Anda wajib mengunduh kedua berkas (PDF & DOCX) sebelum dapat menutup kegiatan ini.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Tombol PDF -->
+          <button id="btn-export-pdf" class="py-3 px-4 rounded-xl border-2 border-orange-500 bg-orange-50 hover:bg-orange-100 text-orange-800 font-extrabold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">📄 Unduh Laporan PDF Resmi</span>
+            <span id="badge-pdf-downloaded" class="hidden text-green-700 bg-green-100 px-2 py-0.5 rounded text-[10px] font-bold">✓ Terunduh</span>
+          </button>
+
+          <!-- Tombol DOCX -->
+          <button id="btn-export-docx" class="py-3 px-4 rounded-xl border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">📝 Unduh Laporan DOCX (Word)</span>
+            <span id="badge-docx-downloaded" class="hidden text-green-700 bg-green-100 px-2 py-0.5 rounded text-[10px] font-bold">✓ Terunduh</span>
+          </button>
+        </div>
+
+        <!-- Tombol Tutup & Reset (Terkunci jika belum unduh dua-duanya) -->
+        <div class="pt-2 border-t border-slate-100">
+          <button id="btn-trigger-reset" disabled class="w-full py-3.5 px-6 rounded-xl bg-slate-300 text-slate-500 font-extrabold text-sm opacity-60 cursor-not-allowed transition flex items-center justify-center gap-2">
+            <span>🔒</span>
+            <span>Unduh PDF & DOCX terlebih dahulu untuk membuka tombol arsip</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- =========================================================================
+       3. MODAL-MODAL
+       ========================================================================= -->
+
+  <!-- MODAL LOGIN MARSHAL -->
+  <div id="modal-login" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-slate-100 text-center">
+      <div class="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4">
+        🛡️
+      </div>
+      <h3 class="text-lg font-black text-slate-800">Autentikasi Marshal</h3>
+      <p class="text-xs text-slate-500 mb-4">Masukkan kata sandi administrator untuk mengelola kegiatan.</p>
+
+      <div class="space-y-3">
+        <input type="password" id="input-login-password" placeholder="Password Marshal..." class="w-full text-sm px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 text-center font-bold">
+        <div id="login-error" class="text-xs text-red-600 font-bold hidden"></div>
+        <button onclick="handleLoginSubmit()" class="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm shadow transition">
+          Masuk ke Panel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ASISTEN GEMINI AI -->
+  <div id="modal-gemini-chat" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-2xl w-full h-[85vh] shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
+      
+      <!-- Header Modal -->
+      <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-purple-50/50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow">
+            ✦
+          </div>
+          <div>
+            <h4 class="font-extrabold text-slate-800 text-sm sm:text-base">Asisten Data Kegiatan</h4>
+            <span class="text-[11px] text-purple-700 font-bold">Didukung Google Gemini AI</span>
+          </div>
+        </div>
+        <button id="btn-close-gemini-modal" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center font-bold text-sm">
+          ✕
+        </button>
+      </div>
+
+      <!-- Quick Chips -->
+      <div class="p-3 border-b border-slate-100 bg-white overflow-x-auto flex gap-2 flex-shrink-0 text-xs">
+        <button class="gemini-chip-btn flex-shrink-0 bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold px-3 py-1.5 rounded-full border border-purple-200" data-prompt="Buatkan ringkasan eksekutif komprehensif dari hasil penilaian kegiatan ini!">
+          📋 Ringkasan Eksekutif
+        </button>
+        <button class="gemini-chip-btn flex-shrink-0 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-full border border-amber-200" data-prompt="Apa keluhan atau catatan paling banyak mengenai tempat, sarana, dan makanan?">
+          🏨 Evaluasi Tempat & Fasilitas
+        </button>
+        <button class="gemini-chip-btn flex-shrink-0 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold px-3 py-1.5 rounded-full border border-blue-200" data-prompt="Rangkum topik materi atau pelatihan apa saja yang paling banyak diusulkan peserta untuk program berikutnya?">
+          💡 Rekomendasi Topik Depan
+        </button>
+        <button class="gemini-chip-btn flex-shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold px-3 py-1.5 rounded-full border border-emerald-200" data-prompt="Bagaimana sentimen umum peserta terhadap penguasaan materi oleh narasumber?">
+          🎤 Evaluasi Narasumber
+        </button>
+      </div>
+
+      <!-- Chat History -->
+      <div id="gemini-chat-log" class="flex-1 p-4 sm:p-5 overflow-y-auto space-y-3 bg-slate-50">
+        <div class="bg-purple-50 text-purple-900 border border-purple-100 rounded-2xl rounded-tl-none p-4 text-xs sm:text-sm leading-relaxed max-w-lg">
+          Halo Panitia Bidang SMP! Saya siap menganalisis data respon evaluasi khusus untuk kegiatan yang sedang aktif saat ini. Anda dapat mengklik tombol pintasan di atas atau mengetik pertanyaan bebas di bawah.
+        </div>
+      </div>
+
+      <!-- Input Chat -->
+      <form id="form-gemini-chat" class="p-3 bg-white border-t border-slate-200 flex gap-2 flex-shrink-0">
+        <input type="text" id="input-gemini-query" placeholder="Tanyakan seputar masukan responden..." class="flex-1 text-sm px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-purple-500">
+        <button type="submit" class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-sm shadow transition">
+          Tanya
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- MODAL QR CODE PROYEKTOR -->
+  <div id="modal-qr" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-slate-800 text-base">QR Barcode Penilaian</h3>
+        <button onclick="document.getElementById('modal-qr').classList.add('hidden')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold">✕</button>
+      </div>
+
+      <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 inline-block">
+        <img id="qr-image-display" src="" alt="QR Barcode" class="w-56 h-56 mx-auto object-contain">
+      </div>
+
+      <div>
+        <p class="text-xs text-slate-500 mb-1">Tampilkan di proyektor aula untuk di-scan peserta:</p>
+        <div id="link-publik-url" class="font-mono text-xs text-orange-600 font-bold bg-orange-50 p-2 rounded-lg break-all"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KONFIRMASI RESET & ARSIP -->
+  <div id="modal-reset-confirm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4 text-center">
+      <div class="w-14 h-14 bg-red-100 text-red-600 rounded-2xl mx-auto flex items-center justify-center text-2xl font-black">
+        ⚠️
+      </div>
+
+      <div>
+        <h3 class="text-lg font-black text-slate-800">Tutup & Arsipkan Kegiatan?</h3>
+        <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+          Seluruh data respon akan disalin otomatis menjadi tab baru bernama <strong class="text-slate-800">`ARSIP_[Nama Kegiatan]`</strong> di Google Sheets. Tab RESPON akan dikosongkan dan portal web publik kembali ke mode Standby.
+        </p>
+      </div>
+
+      <div class="text-left space-y-2 pt-2">
+        <label class="block text-xs font-bold text-slate-700">Ketik Ulang Password Marshal untuk Konfirmasi:</label>
+        <input type="password" id="input-reset-password" placeholder="Password Marshal..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-red-500 font-bold text-center">
+        <div id="reset-password-error" class="text-xs text-red-600 font-bold hidden"></div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="document.getElementById('modal-reset-confirm').classList.add('hidden')" class="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">
+          Batal
+        </button>
+        <button id="btn-confirm-reset-submit" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs shadow transition">
+          Konfirmasi & Arsipkan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STICKY FOOTER -->
+  <footer class="sticky-app-footer">
+    <span class="footer-text">DIGITALLY SHAPED BY</span>
+    <img 
+      src="https://i.ibb.co.com/KpqwmHd6/Logo-Jemprot-2-1-removebg-preview.png" 
+      alt="Logo JeMPROT" 
+      class="footer-logo">
+    <span class="footer-badge">[BID SMP 2026]</span>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/export.js"></script>
+  <script src="../assets/js/marshal.js"></script>
+</body>
+</html>
