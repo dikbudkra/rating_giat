@@ -150,57 +150,176 @@ function setupFormListeners(event) {
   form.onsubmit = async (e) => {
     e.preventDefault();
 
-    // Validasi Radio Angka
+    // Helper untuk menandai field input/textarea yang belum diisi (tanpa notifikasi bawaan browser)
+    const markInvalid = (el, msg, title = "Wajib Diisi") => {
+      showToast(msg, "warning", title);
+      if (el) {
+        el.classList.add("border-red-500", "ring-2", "ring-red-200");
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus();
+        const clearHighlight = () => {
+          el.classList.remove("border-red-500", "ring-2", "ring-red-200");
+          el.removeEventListener("input", clearHighlight);
+          el.removeEventListener("change", clearHighlight);
+        };
+        el.addEventListener("input", clearHighlight);
+        el.addEventListener("change", clearHighlight);
+      }
+    };
+
+    // Helper untuk menandai container pilihan angka radio
+    const markRadioInvalid = (name, containerId, msg) => {
+      showToast(msg, "warning", "Nilai Wajib Dipilih");
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.scrollIntoView({ behavior: "smooth", block: "center" });
+        container.classList.add("ring-2", "ring-red-500", "rounded-xl", "p-1.5");
+        const radios = document.querySelectorAll(`input[name="${name}"]`);
+        radios.forEach(r => {
+          r.addEventListener("change", () => {
+            container.classList.remove("ring-2", "ring-red-500", "rounded-xl", "p-1.5");
+          }, { once: true });
+        });
+      }
+    };
+
+    // 1. Validasi Identitas (Jika Mode DATA)
+    if (modeData.checked) {
+      const namaEl = document.getElementById("input-nama");
+      if (!namaEl.value.trim()) {
+        markInvalid(namaEl, "Harap isi Nama Lengkap & Gelar Anda.");
+        return;
+      }
+      const sekolahEl = document.getElementById("input-sekolah");
+      if (!sekolahEl.value.trim()) {
+        markInvalid(sekolahEl, "Harap isi Asal Satuan Pendidikan (SMP) Anda.");
+        return;
+      }
+      const jabatanEl = document.getElementById("input-jabatan");
+      if (!jabatanEl.value.trim()) {
+        markInvalid(jabatanEl, "Harap isi Jabatan / Peran Anda.");
+        return;
+      }
+    }
+
+    // Helper pembaca radio
     const getRadioVal = (name) => {
       const el = document.querySelector(`input[name="${name}"]:checked`);
       return el ? el.value : null;
     };
 
+    // 2. Validasi Aspek A: Kualitas Narasumber (Nilai & Catatan)
     const narasumber = getRadioVal("nilai_narasumber");
-    const materi = getRadioVal("nilai_materi");
-    const panitia = getRadioVal("nilai_fasilitas_panitia");
-    const kepuasan = getRadioVal("nilai_kepuasan");
-
-    if (!narasumber || !materi || !panitia || !kepuasan) {
-      showToast("Harap lengkapi seluruh butir penilaian mutu kegiatan (Skala 1 - 10) sebelum mengirim.", "warning", "Form Belum Lengkap");
+    if (!narasumber) {
+      markRadioInvalid("nilai_narasumber", "grid-narasumber", "Harap pilih nilai (1 - 10) untuk Kualitas Narasumber / Fasilitator.");
+      return;
+    }
+    const catNaraEl = document.getElementById("catatan-narasumber");
+    if (!catNaraEl.value.trim()) {
+      markInvalid(catNaraEl, "Harap isi penjelasan / catatan penilaian Narasumber.");
       return;
     }
 
-    let tempatFas = null;
-    let tempatPel = null;
-    if (event.is_lokasi_active) {
-      tempatFas = getRadioVal("nilai_tempat_fasilitas");
-      tempatPel = getRadioVal("nilai_tempat_pelayanan");
-      if (!tempatFas || !tempatPel) {
-        showToast("Harap lengkapi penilaian fasilitas & pelayanan tempat acara!", "warning", "Form Belum Lengkap");
-        return;
-      }
+    // 3. Validasi Aspek B: Materi & Kemanfaatan (Nilai & Catatan)
+    const materi = getRadioVal("nilai_materi");
+    if (!materi) {
+      markRadioInvalid("nilai_materi", "grid-materi", "Harap pilih nilai (1 - 10) untuk Materi & Kemanfaatan.");
+      return;
+    }
+    const catMatEl = document.getElementById("catatan-materi");
+    if (!catMatEl.value.trim()) {
+      markInvalid(catMatEl, "Harap isi penjelasan / catatan penilaian Materi.");
+      return;
     }
 
+    // 4. Validasi Aspek C: Penyelenggaraan Panitia (Nilai & Catatan)
+    const panitia = getRadioVal("nilai_fasilitas_panitia");
+    if (!panitia) {
+      markRadioInvalid("nilai_fasilitas_panitia", "grid-panitia", "Harap pilih nilai (1 - 10) untuk Pelayanan & Penyelenggaraan Panitia.");
+      return;
+    }
+    const catPanEl = document.getElementById("catatan-panitia");
+    if (!catPanEl.value.trim()) {
+      markInvalid(catPanEl, "Harap isi penjelasan / catatan penilaian Panitia.");
+      return;
+    }
+
+    // 5. Validasi Aspek D: Kepuasan Menyeluruh (Nilai & Catatan)
+    const kepuasan = getRadioVal("nilai_kepuasan");
+    if (!kepuasan) {
+      markRadioInvalid("nilai_kepuasan", "grid-kepuasan", "Harap pilih nilai (1 - 10) untuk Kepuasan Menyeluruh (Overall).");
+      return;
+    }
+    const catKepEl = document.getElementById("catatan-kepuasan");
+    if (!catKepEl.value.trim()) {
+      markInvalid(catKepEl, "Harap isi penjelasan / catatan Kepuasan Menyeluruh.");
+      return;
+    }
+
+    // 6. Validasi Tempat Acara (Jika Aktif)
+    let tempatFas = null;
+    let tempatPel = null;
+    let catTmpFasVal = "";
+    let catTmpPelVal = "";
+
+    if (event.is_lokasi_active) {
+      tempatFas = getRadioVal("nilai_tempat_fasilitas");
+      if (!tempatFas) {
+        markRadioInvalid("nilai_tempat_fasilitas", "grid-tempat-fasilitas", "Harap pilih nilai (1 - 10) untuk Fasilitas Tempat.");
+        return;
+      }
+      const catTmpFasEl = document.getElementById("catatan-tempat-fasilitas");
+      if (!catTmpFasEl.value.trim()) {
+        markInvalid(catTmpFasEl, "Harap isi penjelasan / catatan Fasilitas Tempat.");
+        return;
+      }
+      catTmpFasVal = catTmpFasEl.value.trim();
+
+      tempatPel = getRadioVal("nilai_tempat_pelayanan");
+      if (!tempatPel) {
+        markRadioInvalid("nilai_tempat_pelayanan", "grid-tempat-pelayanan", "Harap pilih nilai (1 - 10) untuk Pelayanan Tempat.");
+        return;
+      }
+      const catTmpPelEl = document.getElementById("catatan-tempat-pelayanan");
+      if (!catTmpPelEl.value.trim()) {
+        markInvalid(catTmpPelEl, "Harap isi penjelasan / catatan Pelayanan & Konsumsi Tempat.");
+        return;
+      }
+      catTmpPelVal = catTmpPelEl.value.trim();
+    }
+
+    // 7. Validasi Masukan & Rekomendasi
+    const saranEl = document.getElementById("input-saran");
+    if (!saranEl.value.trim()) {
+      markInvalid(saranEl, "Harap isi Saran & Masukan untuk Panitia / Narasumber.");
+      return;
+    }
+
+    const rekomendasiEl = document.getElementById("input-rekomendasi");
+    if (!rekomendasiEl.value.trim()) {
+      markInvalid(rekomendasiEl, "Harap isi Rekomendasi Topik / Pelatihan Berikutnya.");
+      return;
+    }
+
+    // Jika seluruh validasi lolos, lanjutkan pengiriman
     const submitBtn = document.getElementById("btn-submit-rating");
     const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Mengirimkan Penilaian...`;
     showLoader("Mengirimkan penilaian Anda ke server...");
 
-    // Kumpulkan catatan penjelasan per aspek jika diisi
+    // Format catatan penjelasan terstruktur
     let catatanList = [];
-    const catNara = document.getElementById("catatan-narasumber") ? document.getElementById("catatan-narasumber").value.trim() : "";
-    const catMat = document.getElementById("catatan-materi") ? document.getElementById("catatan-materi").value.trim() : "";
-    const catPan = document.getElementById("catatan-panitia") ? document.getElementById("catatan-panitia").value.trim() : "";
-    const catKep = document.getElementById("catatan-kepuasan") ? document.getElementById("catatan-kepuasan").value.trim() : "";
-    const catTmpFas = document.getElementById("catatan-tempat-fasilitas") ? document.getElementById("catatan-tempat-fasilitas").value.trim() : "";
-    const catTmpPel = document.getElementById("catatan-tempat-pelayanan") ? document.getElementById("catatan-tempat-pelayanan").value.trim() : "";
+    catatanList.push(`[Narasumber: ${catNaraEl.value.trim()}]`);
+    catatanList.push(`[Materi: ${catMatEl.value.trim()}]`);
+    catatanList.push(`[Panitia: ${catPanEl.value.trim()}]`);
+    catatanList.push(`[Kepuasan: ${catKepEl.value.trim()}]`);
+    if (event.is_lokasi_active) {
+      catatanList.push(`[Fasilitas Tempat: ${catTmpFasVal}]`);
+      catatanList.push(`[Pelayanan Tempat: ${catTmpPelVal}]`);
+    }
 
-    if (catNara) catatanList.push(`[Narasumber: ${catNara}]`);
-    if (catMat) catatanList.push(`[Materi: ${catMat}]`);
-    if (catPan) catatanList.push(`[Panitia: ${catPan}]`);
-    if (catKep) catatanList.push(`[Kepuasan: ${catKep}]`);
-    if (catTmpFas) catatanList.push(`[Fasilitas Tempat: ${catTmpFas}]`);
-    if (catTmpPel) catatanList.push(`[Pelayanan Tempat: ${catTmpPel}]`);
-
-    const saranUmum = document.getElementById("input-saran").value.trim();
-    const fullSaran = [catatanList.join(" "), saranUmum].filter(Boolean).join("\n\n");
+    const fullSaran = [catatanList.join("\n"), saranEl.value.trim()].join("\n\n");
 
     const payload = {
       action: "submitRating",
@@ -216,7 +335,7 @@ function setupFormListeners(event) {
       nilai_tempat_fasilitas: tempatFas,
       nilai_tempat_pelayanan: tempatPel,
       saran_masukan: fullSaran,
-      rekomendasi_topik: document.getElementById("input-rekomendasi").value.trim()
+      rekomendasi_topik: rekomendasiEl.value.trim()
     };
 
     try {
