@@ -303,6 +303,29 @@ function setupEventListeners() {
     };
   }
 
+  // Enter Key Listener untuk Input Password Login
+  const loginInput = document.getElementById("input-login-password");
+  if (loginInput) {
+    loginInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleLoginSubmit();
+      }
+    });
+  }
+
+  // Enter Key Listener untuk Input Password Reset
+  const resetInput = document.getElementById("input-reset-password");
+  if (resetInput) {
+    resetInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const confirmBtn = document.getElementById("btn-confirm-reset-submit");
+        if (confirmBtn) confirmBtn.click();
+      }
+    });
+  }
+
   // Gemini Assistant Interactions
   setupGeminiAssistant();
 }
