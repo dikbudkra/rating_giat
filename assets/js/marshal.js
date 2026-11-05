@@ -373,10 +373,14 @@ function getGeminiWelcomeCardHtml() {
   `;
 }
 
+let geminiChatSessionId = 0;
+
 function resetGeminiChatUI() {
+  geminiChatSessionId++;
   const chatLog = document.getElementById("gemini-chat-log");
   if (chatLog) {
     chatLog.innerHTML = getGeminiWelcomeCardHtml();
+    chatLog.scrollTop = 0;
     // Pasang event listener ke tombol contoh pertanyaan siap klik
     chatLog.querySelectorAll(".gemini-chip-btn").forEach(btn => {
       btn.onclick = () => {
@@ -394,8 +398,13 @@ function closeAndClearGeminiChat() {
   if (modal) {
     modal.classList.add("hidden");
   }
+  // Auto-clear obrolan saat chat ditutup
   resetGeminiChatUI();
 }
+
+// Buka akses ke window agar bisa dipanggil langsung dari onclick HTML
+window.resetGeminiChatUI = resetGeminiChatUI;
+window.closeAndClearGeminiChat = closeAndClearGeminiChat;
 
 function setupGeminiAssistant() {
   const geminiCard = document.getElementById("gemini-widget-trigger");
@@ -414,6 +423,7 @@ function setupGeminiAssistant() {
       const badgeEl = document.getElementById("gemini-modal-count-badge");
       if (badgeEl) badgeEl.innerText = `${count} Responden`;
 
+      // Auto-clear obrolan saat dibuka baru
       resetGeminiChatUI();
       modal.classList.remove("hidden");
     };
@@ -432,6 +442,16 @@ function setupGeminiAssistant() {
     };
   }
 
+  // Tutup & Clear jika tekan tombol Escape keyboard
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const m = document.getElementById("modal-gemini-chat");
+      if (m && !m.classList.contains("hidden")) {
+        closeAndClearGeminiChat();
+      }
+    }
+  });
+
   // Kirim Pertanyaan Custom
   const formChat = document.getElementById("form-gemini-chat");
   if (formChat) {
@@ -448,6 +468,7 @@ function setupGeminiAssistant() {
 }
 
 async function sendPromptToGemini(questionText) {
+  const sessionWhenSent = geminiChatSessionId;
   const chatLog = document.getElementById("gemini-chat-log");
 
   // Tambahkan bubble user
@@ -485,6 +506,9 @@ async function sendPromptToGemini(questionText) {
     });
     const result = await res.json();
 
+    // Jika user sudah menutup atau mereset chat saat menunggu respons, abaikan respons
+    if (sessionWhenSent !== geminiChatSessionId) return;
+
     botLoading.remove();
 
     const botMsg = document.createElement("div");
@@ -520,6 +544,7 @@ async function sendPromptToGemini(questionText) {
     chatLog.scrollTop = chatLog.scrollHeight;
 
   } catch (e) {
+    if (sessionWhenSent !== geminiChatSessionId) return;
     console.error(e);
     botLoading.remove();
     const botErr = document.createElement("div");
