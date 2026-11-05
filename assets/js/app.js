@@ -265,12 +265,12 @@ function setupFormListeners(event) {
     if (event.is_lokasi_active) {
       tempatFas = getRadioVal("nilai_tempat_fasilitas");
       if (!tempatFas) {
-        markRadioInvalid("nilai_tempat_fasilitas", "grid-tempat-fasilitas", "Harap pilih nilai (1 - 10) untuk Fasilitas Tempat.");
+        markRadioInvalid("nilai_tempat_fasilitas", "grid-tempat-fasilitas", "Harap pilih nilai (1 - 10) untuk Fasilitas Tempat Acara.");
         return;
       }
       const catTmpFasEl = document.getElementById("catatan-tempat-fasilitas");
       if (!catTmpFasEl.value.trim()) {
-        markInvalid(catTmpFasEl, "Harap isi penjelasan / catatan Fasilitas Tempat.");
+        markInvalid(catTmpFasEl, "Harap isi penjelasan / catatan Fasilitas Tempat Acara.");
         return;
       }
       catTmpFasVal = catTmpFasEl.value.trim();
@@ -315,8 +315,8 @@ function setupFormListeners(event) {
     catatanList.push(`[Panitia: ${catPanEl.value.trim()}]`);
     catatanList.push(`[Kepuasan: ${catKepEl.value.trim()}]`);
     if (event.is_lokasi_active) {
-      catatanList.push(`[Fasilitas Tempat: ${catTmpFasVal}]`);
-      catatanList.push(`[Pelayanan Tempat: ${catTmpPelVal}]`);
+      catatanList.push(`[Fasilitas Tempat Acara: ${catTmpFasVal}]`);
+      catatanList.push(`[Pelayanan & Konsumsi: ${catTmpPelVal}]`);
     }
 
     const fullSaran = [catatanList.join("\n"), saranEl.value.trim()].join("\n\n");

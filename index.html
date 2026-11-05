@@ -218,12 +218,9 @@
 
           <!-- Aspek A: Narasumber -->
           <div>
-            <label class="block text-sm font-bold text-slate-800 mb-1">
+            <label class="block text-sm font-bold text-slate-800 mb-2.5">
               A. Kualitas Narasumber / Fasilitator <span class="text-red-500 font-bold">*</span>
             </label>
-            <span class="block text-xs text-slate-500 mb-2.5">
-              Penguasaan materi, metode penyampaian yang interaktif, serta alokasi waktu tanya-jawab.
-            </span>
             <div id="grid-narasumber" class="rating-pills-grid transition">
               <!-- Baris 1: 1-5 -->
               <input type="radio" name="nilai_narasumber" id="a-1" value="1" class="rating-pill-input sr-only"><label for="a-1" class="rating-pill-label">1</label>
@@ -248,12 +245,9 @@
 
           <!-- Aspek B: Materi -->
           <div class="pt-4 border-t border-slate-100">
-            <label class="block text-sm font-bold text-slate-800 mb-1">
+            <label class="block text-sm font-bold text-slate-800 mb-2.5">
               B. Materi & Kemanfaatan <span class="text-red-500 font-bold">*</span>
             </label>
-            <span class="block text-xs text-slate-500 mb-2.5">
-              Kesesuaian materi dengan kebutuhan tugas serta kemudahan penerapan di sekolah.
-            </span>
             <div id="grid-materi" class="rating-pills-grid transition">
               <input type="radio" name="nilai_materi" id="b-1" value="1" class="rating-pill-input sr-only"><label for="b-1" class="rating-pill-label">1</label>
               <input type="radio" name="nilai_materi" id="b-2" value="2" class="rating-pill-input sr-only"><label for="b-2" class="rating-pill-label">2</label>
@@ -276,12 +270,9 @@
 
           <!-- Aspek C: Penyelenggaraan Panitia -->
           <div class="pt-4 border-t border-slate-100">
-            <label class="block text-sm font-bold text-slate-800 mb-1">
+            <label class="block text-sm font-bold text-slate-800 mb-2.5">
               C. Pelayanan & Penyelenggaraan Panitia <span class="text-red-500 font-bold">*</span>
             </label>
-            <span class="block text-xs text-slate-500 mb-2.5">
-              Ketepatan jadwal acara (rundown), kesiapan panitia, serta kecepatan merespon kendala.
-            </span>
             <div id="grid-panitia" class="rating-pills-grid transition">
               <input type="radio" name="nilai_fasilitas_panitia" id="c-1" value="1" class="rating-pill-input sr-only"><label for="c-1" class="rating-pill-label">1</label>
               <input type="radio" name="nilai_fasilitas_panitia" id="c-2" value="2" class="rating-pill-input sr-only"><label for="c-2" class="rating-pill-label">2</label>
@@ -304,12 +295,9 @@
 
           <!-- Aspek D: Kepuasan Menyeluruh -->
           <div class="pt-4 border-t border-slate-100">
-            <label class="block text-sm font-bold text-slate-800 mb-1">
+            <label class="block text-sm font-bold text-slate-800 mb-2.5">
               D. Kepuasan Menyeluruh (Overall) <span class="text-red-500 font-bold">*</span>
             </label>
-            <span class="block text-xs text-slate-500 mb-2.5">
-              Kepuasan Anda secara umum terhadap manfaat dan keberhasilan kegiatan ini.
-            </span>
             <div id="grid-kepuasan" class="rating-pills-grid transition">
               <input type="radio" name="nilai_kepuasan" id="d-1" value="1" class="rating-pill-input sr-only"><label for="d-1" class="rating-pill-label">1</label>
               <input type="radio" name="nilai_kepuasan" id="d-2" value="2" class="rating-pill-input sr-only"><label for="d-2" class="rating-pill-label">2</label>
@@ -349,14 +337,11 @@
             </span>
           </div>
 
-          <!-- Fasilitas Tempat -->
+          <!-- Fasilitas Tempat Acara -->
           <div>
-            <label class="block text-sm font-bold text-slate-800 mb-1">
-              Fasilitas Tempat (Kebersihan, AC, Audio & Ruangan) <span class="text-red-500 font-bold">*</span>
+            <label class="block text-sm font-bold text-slate-800 mb-2.5">
+              Fasilitas Tempat Acara <span class="text-red-500 font-bold">*</span>
             </label>
-            <span class="block text-xs text-slate-500 mb-2.5">
-              Kesejukan AC, kejernihan sound system, proyektor, serta kebersihan toilet & ruangan.
-            </span>
             <div id="grid-tempat-fasilitas" class="rating-pills-grid transition">
               <input type="radio" name="nilai_tempat_fasilitas" id="tf-1" value="1" class="rating-pill-input sr-only"><label for="tf-1" class="rating-pill-label">1</label>
               <input type="radio" name="nilai_tempat_fasilitas" id="tf-2" value="2" class="rating-pill-input sr-only"><label for="tf-2" class="rating-pill-label">2</label>
@@ -371,20 +356,17 @@
             </div>
             <div class="mt-3">
               <label for="catatan-tempat-fasilitas" class="block text-xs font-bold text-slate-700 mb-1">
-                Penjelasan / Catatan Fasilitas Tempat <span class="text-red-500 font-bold">*</span>
+                Penjelasan / Catatan Fasilitas Tempat Acara <span class="text-red-500 font-bold">*</span>
               </label>
-              <textarea id="catatan-tempat-fasilitas" rows="3" placeholder="Tuliskan catatan terkait kondisi AC, kebersihan, ruangan, dan proyektor (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
+              <textarea id="catatan-tempat-fasilitas" rows="3" placeholder="Tuliskan catatan terkait fasilitas tempat acara (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
             </div>
           </div>
 
           <!-- Pelayanan Tempat -->
           <div class="pt-4 border-t border-slate-100">
-            <label class="block text-sm font-bold text-slate-800 mb-1">
+            <label class="block text-sm font-bold text-slate-800 mb-2.5">
               Pelayanan & Konsumsi Tempat <span class="text-red-500 font-bold">*</span>
             </label>
-            <span class="block text-xs text-slate-500 mb-2.5">
-              Keramahan staf gedung/hotel, rasa & kelayakan hidangan konsumsi/snack.
-            </span>
             <div id="grid-tempat-pelayanan" class="rating-pills-grid transition">
               <input type="radio" name="nilai_tempat_pelayanan" id="tp-1" value="1" class="rating-pill-input sr-only"><label for="tp-1" class="rating-pill-label">1</label>
               <input type="radio" name="nilai_tempat_pelayanan" id="tp-2" value="2" class="rating-pill-input sr-only"><label for="tp-2" class="rating-pill-label">2</label>
@@ -401,7 +383,7 @@
               <label for="catatan-tempat-pelayanan" class="block text-xs font-bold text-slate-700 mb-1">
                 Penjelasan / Catatan Pelayanan & Konsumsi Tempat <span class="text-red-500 font-bold">*</span>
               </label>
-              <textarea id="catatan-tempat-pelayanan" rows="3" placeholder="Tuliskan catatan terkait keramahan staf tempat serta kelayakan & rasa hidangan (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
+              <textarea id="catatan-tempat-pelayanan" rows="3" placeholder="Tuliskan catatan terkait pelayanan dan konsumsi tempat (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
             </div>
           </div>
         </div>
