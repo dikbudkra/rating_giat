@@ -162,7 +162,7 @@ function setupFormListeners(event) {
     const kepuasan = getRadioVal("nilai_kepuasan");
 
     if (!narasumber || !materi || !panitia || !kepuasan) {
-      alert("Harap lengkapi semua aspek penilaian mutu kegiatan (Skala 1 - 10)!");
+      showToast("Harap lengkapi seluruh butir penilaian mutu kegiatan (Skala 1 - 10) sebelum mengirim.", "warning", "Form Belum Lengkap");
       return;
     }
 
@@ -172,7 +172,7 @@ function setupFormListeners(event) {
       tempatFas = getRadioVal("nilai_tempat_fasilitas");
       tempatPel = getRadioVal("nilai_tempat_pelayanan");
       if (!tempatFas || !tempatPel) {
-        alert("Harap lengkapi penilaian fasilitas & pelayanan tempat acara!");
+        showToast("Harap lengkapi penilaian fasilitas & pelayanan tempat acara!", "warning", "Form Belum Lengkap");
         return;
       }
     }
@@ -181,6 +181,7 @@ function setupFormListeners(event) {
     const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Mengirimkan Penilaian...`;
+    showLoader("Mengirimkan penilaian Anda ke server...");
 
     const payload = {
       action: "submitRating",
@@ -205,8 +206,10 @@ function setupFormListeners(event) {
         body: JSON.stringify(payload)
       });
       const result = await res.json();
+      hideLoader();
 
       if (result.status === "success") {
+        showToast("Penilaian Anda berhasil disimpan!", "success", "Berhasil");
         // Simpan tanda sudah mengisi di LocalStorage (Kunci Mutlak)
         const submissionData = {
           submitted_at: new Date().toLocaleString("id-ID", { dateStyle: "long", timeStyle: "short" }),
@@ -218,13 +221,14 @@ function setupFormListeners(event) {
 
         renderSuccessView(event, result);
       } else {
-        alert("Gagal menyimpan penilaian: " + result.message);
+        showToast(result.message || "Gagal menyimpan penilaian.", "error", "Gagal");
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
       }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan koneksi saat mengirim penilaian. Silakan coba lagi.");
+      hideLoader();
+      showToast("Terjadi kendala jaringan saat mengirim penilaian. Silakan coba lagi.", "error", "Koneksi Bermasalah");
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalText;
     }
@@ -297,4 +301,47 @@ function renderStarRatingDisplay(elementId, ratingScore) {
 
     container.appendChild(starBox);
   }
+}
+
+/**
+ * Custom Toast Notifications
+ */
+function showToast(message, type = "info", title = "") {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+
+  const item = document.createElement("div");
+  item.className = `toast-item toast-${type}`;
+
+  let iconText = "ℹ️";
+  if (type === "success") iconText = "✓";
+  if (type === "error") iconText = "✕";
+  if (type === "warning") iconText = "⚠️";
+
+  item.innerHTML = `
+    <div class="toast-icon">${iconText}</div>
+    <div class="flex-1 text-xs">
+      ${title ? `<div class="font-extrabold text-slate-800 text-sm mb-0.5">${title}</div>` : ""}
+      <div class="text-slate-600 leading-snug">${message}</div>
+    </div>
+  `;
+
+  container.appendChild(item);
+
+  setTimeout(() => {
+    item.classList.add("toast-leave");
+    setTimeout(() => item.remove(), 350);
+  }, 4000);
+}
+
+function showLoader(text = "Memproses data...") {
+  const loader = document.getElementById("global-loader");
+  const loaderText = document.getElementById("global-loader-text");
+  if (loaderText) loaderText.innerText = text;
+  if (loader) loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  const loader = document.getElementById("global-loader");
+  if (loader) loader.classList.add("hidden");
 }

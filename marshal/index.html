@@ -292,10 +292,11 @@
       <p class="text-xs text-slate-500 mb-4">Masukkan kata sandi administrator untuk mengelola kegiatan.</p>
 
       <form onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
-        <input type="password" id="input-login-password" placeholder="Password Marshal..." class="w-full text-sm px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 text-center font-bold">
+        <input type="password" id="input-login-password" onkeydown="if(event.key==='Enter'){event.preventDefault(); handleLoginSubmit();}" placeholder="Password Marshal..." class="w-full text-sm px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 text-center font-bold">
         <div id="login-error" class="text-xs text-red-600 font-bold hidden"></div>
-        <button type="submit" class="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm shadow transition">
-          Masuk ke Panel
+        <button type="submit" id="btn-login-submit" class="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm shadow transition flex items-center justify-center gap-2">
+          <span>Masuk ke Panel</span>
+          <span>➔</span>
         </button>
       </form>
     </div>
@@ -369,7 +370,10 @@
 
       <div>
         <p class="text-xs text-slate-500 mb-1">Tampilkan di proyektor aula untuk di-scan peserta:</p>
-        <div id="link-publik-url" class="font-mono text-xs text-orange-600 font-bold bg-orange-50 p-2 rounded-lg break-all"></div>
+        <div id="link-publik-url" class="font-mono text-xs text-orange-600 font-bold bg-orange-50 p-2 rounded-lg break-all mb-3"></div>
+        <button onclick="downloadQrAsJpg()" class="w-full py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs shadow transition flex items-center justify-center gap-2">
+          <span>📥</span> Unduh Barcode (JPG)
+        </button>
       </div>
     </div>
   </div>
@@ -414,6 +418,13 @@
       class="footer-logo">
     <span class="footer-badge">[BID SMP 2026]</span>
   </footer>
+
+  <!-- TOAST CONTAINER & GLOBAL LOADER -->
+  <div id="toast-container"></div>
+  <div id="global-loader" class="hidden">
+    <div class="loader-spinner mb-3"></div>
+    <div id="global-loader-text" class="text-white text-sm font-bold tracking-wide">Memproses data...</div>
+  </div>
 
   <!-- Scripts -->
   <script src="../assets/js/config.js"></script>

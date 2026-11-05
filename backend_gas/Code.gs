@@ -631,3 +631,80 @@ function handleAskGemini(params) {
     answer: answer
   };
 }
+
+/**
+ * ============================================================================
+ * TEST KONEKSI GEMINI API (JALANKAN FUNGSI INI DI GOOGLE APPS SCRIPT)
+ * Pilih fungsi 'testKoneksiGemini' di menu atas editor GAS, lalu klik Run (▶)
+ * ============================================================================
+ */
+function testKoneksiGemini() {
+  Logger.log("🔍 Memeriksa konfigurasi GEMINI_API_KEY...");
+  
+  const apiKey = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
+  if (!apiKey) {
+    Logger.log("❌ ERROR: GEMINI_API_KEY belum disetel di Script Properties!");
+    Logger.log("👉 Buka Project Settings (ikon roda gigi) -> Script Properties -> Add GEMINI_API_KEY");
+    return "GAGAL: API Key belum dipasang di Script Properties.";
+  }
+
+  Logger.log("🔑 API Key ditemukan: " + apiKey.substring(0, 6) + "..." + apiKey.substring(apiKey.length - 4));
+
+  const modelsToTest = [
+    { name: "gemini-3.1-flash-lite", label: "Model Utama" },
+    { name: "gemini-3.8-flash", label: "Model Cadangan 1" },
+    { name: "gemini-3-flash-preview", label: "Model Cadangan 2" }
+  ];
+
+  const testPayload = {
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: "Halo Gemini, jawab hanya 3 kata: 'Koneksi Sukses Bidang SMP'" }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 50
+    }
+  };
+
+  const testOptions = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(testPayload),
+    muteHttpExceptions: true
+  };
+
+  Logger.log("🚀 Memulai pengujian model...");
+
+  for (let i = 0; i < modelsToTest.length; i++) {
+    const m = modelsToTest[i];
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/" + m.name + ":generateContent?key=" + apiKey;
+    const startTime = new Date().getTime();
+
+    try {
+      Logger.log("⏳ Menguji " + m.label + " (" + m.name + ")...");
+      const resp = UrlFetchApp.fetch(url, testOptions);
+      const latency = new Date().getTime() - startTime;
+      const code = resp.getResponseCode();
+      const text = resp.getContentText();
+
+      if (code === 200) {
+        const json = JSON.parse(text);
+        const reply = (json.candidates && json.candidates[0].content && json.candidates[0].content.parts[0].text) || "-";
+        Logger.log("✅ BERHASIL! Model " + m.name + " aktif.");
+        Logger.log("⚡ Kecepatan Respon: " + latency + " ms");
+        Logger.log("💬 Balasan AI: \"" + reply.trim() + "\"");
+        return "SUKSES: Koneksi Gemini berhasil via " + m.name + " (" + latency + " ms)";
+      } else {
+        Logger.log("⚠️ GAGAL pada " + m.name + " (Kode " + code + "): " + text);
+      }
+    } catch (err) {
+      Logger.log("❌ Error koneksi pada " + m.name + ": " + err.toString());
+    }
+  }
+
+  Logger.log("❌ Seluruh model gagal dihubungi. Periksa kuota atau keabsahan API Key Anda.");
+  return "GAGAL: Tidak ada model yang merespon dengan sukses.";
+}

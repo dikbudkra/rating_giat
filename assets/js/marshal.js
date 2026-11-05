@@ -39,32 +39,55 @@ function handleLoginSubmit() {
   const pwdInput = document.getElementById("input-login-password");
   const pwd = pwdInput.value.trim();
   const errorText = document.getElementById("login-error");
+  const btn = document.getElementById("btn-login-submit");
 
   if (!pwd) {
     errorText.innerText = "Password tidak boleh kosong!";
     errorText.classList.remove("hidden");
+    showToast("Password tidak boleh kosong!", "warning", "Perhatian");
     return;
   }
+
+  // Tampilkan indikator proses
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Memeriksa...`;
+  }
+  showLoader("Memverifikasi kata sandi Marshal...");
 
   // Verifikasi ke GAS
   fetch(`${CONFIG.GAS_WEB_APP_URL}?action=checkLogin&password=${encodeURIComponent(pwd)}`)
     .then(res => res.json())
     .then(data => {
+      hideLoader();
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Masuk ke Panel</span><span>➔</span>`;
+      }
+
       if (data.authenticated) {
         marshalPassword = pwd;
         sessionStorage.setItem("marshal_token", pwd);
         document.getElementById("modal-login").classList.add("hidden");
         errorText.classList.add("hidden");
+        showToast("Login berhasil! Menyiapkan panel kendali...", "success", "Selamat Datang");
         loadDashboardData();
       } else {
         errorText.innerText = "Password salah! Silakan coba lagi.";
         errorText.classList.remove("hidden");
+        showToast("Kata sandi yang Anda masukkan salah.", "error", "Akses Ditolak");
       }
     })
     .catch(err => {
       console.error(err);
+      hideLoader();
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Masuk ke Panel</span><span>➔</span>`;
+      }
       errorText.innerText = "Gagal terhubung ke Google Apps Script.";
       errorText.classList.remove("hidden");
+      showToast("Gagal terhubung ke server. Periksa koneksi internet.", "error", "Koneksi Bermasalah");
     });
 }
 
@@ -77,9 +100,9 @@ async function loadDashboardData() {
     const data = await res.json();
 
     if (data.status === "error") {
-      alert(data.message);
+      showToast(data.message, "error", "Sesi Berakhir");
       sessionStorage.removeItem("marshal_token");
-      location.reload();
+      setTimeout(() => location.reload(), 1500);
       return;
     }
 
@@ -201,7 +224,8 @@ function setupEventListeners() {
 
       const btn = document.getElementById("btn-submit-create-event");
       btn.disabled = true;
-      btn.innerHTML = "Memproses...";
+      btn.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Membuka Sesi...`;
+      showLoader("Membuka sesi penilaian kegiatan baru...");
 
       const payload = {
         action: "openEvent",
@@ -218,16 +242,18 @@ function setupEventListeners() {
           body: JSON.stringify(payload)
         });
         const result = await res.json();
+        hideLoader();
 
         if (result.status === "success") {
-          alert("Kegiatan resmi dibuka!");
+          showToast("Kegiatan resmi dibuka! Formulir responden kini aktif.", "success", "Berhasil");
           loadDashboardData();
         } else {
-          alert("Gagal: " + result.message);
+          showToast(result.message || "Gagal membuka kegiatan.", "error", "Gagal");
         }
       } catch (err) {
         console.error(err);
-        alert("Terjadi kesalahan jaringan.");
+        hideLoader();
+        showToast("Terjadi kesalahan jaringan saat membuka kegiatan.", "error", "Koneksi Bermasalah");
       } finally {
         btn.disabled = false;
         btn.innerHTML = "🚀 Buka Sesi Penilaian Sekarang";
@@ -239,6 +265,7 @@ function setupEventListeners() {
   const btnPdf = document.getElementById("btn-export-pdf");
   if (btnPdf) {
     btnPdf.onclick = () => {
+      showToast("Sedang menyiapkan berkas laporan PDF...", "info", "Mengekspor");
       ExportEngine.downloadPDF(currentDashboardData, latestAiSummary);
     };
   }
@@ -246,6 +273,7 @@ function setupEventListeners() {
   const btnDocx = document.getElementById("btn-export-docx");
   if (btnDocx) {
     btnDocx.onclick = () => {
+      showToast("Sedang menyiapkan berkas laporan DOCX...", "info", "Mengekspor");
       ExportEngine.downloadDOCX(currentDashboardData, latestAiSummary);
     };
   }
@@ -255,7 +283,7 @@ function setupEventListeners() {
   if (btnTriggerReset) {
     btnTriggerReset.onclick = () => {
       if (!ExportEngine.pdfDownloaded || !ExportEngine.docxDownloaded) {
-        alert("PENTING: Anda harus mengunduh kedua file (PDF dan DOCX) terlebih dahulu sebelum dapat menutup kegiatan!");
+        showToast("PENTING: Unduh kedua file (PDF dan DOCX) terlebih dahulu sebelum dapat menutup kegiatan!", "warning", "Syarat Belum Terpenuhi");
         return;
       }
       document.getElementById("modal-reset-confirm").classList.remove("hidden");
@@ -272,11 +300,13 @@ function setupEventListeners() {
       if (!pwd) {
         err.innerText = "Masukkan password Marshal!";
         err.classList.remove("hidden");
+        showToast("Masukkan password Marshal untuk konfirmasi!", "warning", "Password Kosong");
         return;
       }
 
       btnConfirmReset.disabled = true;
-      btnConfirmReset.innerHTML = "Mengarsipkan Data...";
+      btnConfirmReset.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Mengarsipkan Data...`;
+      showLoader("Mengarsipkan data respon ke Google Sheets...");
 
       try {
         const res = await fetch(CONFIG.GAS_WEB_APP_URL, {
@@ -287,9 +317,10 @@ function setupEventListeners() {
           })
         });
         const result = await res.json();
+        hideLoader();
 
         if (result.status === "success") {
-          alert(`Sukses: ${result.message}`);
+          showToast(result.message, "success", "Pengarsipan Sukses");
           document.getElementById("modal-reset-confirm").classList.add("hidden");
           // Reset export states
           ExportEngine.pdfDownloaded = false;
@@ -298,11 +329,14 @@ function setupEventListeners() {
         } else {
           err.innerText = result.message;
           err.classList.remove("hidden");
+          showToast(result.message, "error", "Gagal Mengarsipkan");
         }
       } catch (e) {
         console.error(e);
+        hideLoader();
         err.innerText = "Gagal menghubungi server.";
         err.classList.remove("hidden");
+        showToast("Gagal menghubungi server Google Apps Script.", "error", "Koneksi Bermasalah");
       } finally {
         btnConfirmReset.disabled = false;
         btnConfirmReset.innerHTML = "Konfirmasi & Arsipkan Sekarang";
@@ -490,4 +524,131 @@ function renderStarRatingDisplay(elementId, ratingScore) {
 
     container.appendChild(starBox);
   }
+}
+
+/**
+ * Unduh QR Code Sebagai File JPG
+ */
+function downloadQrAsJpg() {
+  if (!currentDashboardData || !currentDashboardData.event) {
+    showToast("Tidak ada data kegiatan aktif.", "error", "Gagal");
+    return;
+  }
+
+  const qrImg = document.getElementById("qr-image-display");
+  if (!qrImg || !qrImg.src) {
+    showToast("Gambar QR Code belum selesai dimuat.", "warning", "Perhatian");
+    return;
+  }
+
+  showLoader("Membuat berkas JPG beresolusi tinggi...");
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = qrImg.src;
+
+  img.onload = () => {
+    const size = 640;
+    const padding = 50;
+    const bottomHeight = 140;
+
+    canvas.width = size;
+    canvas.height = size + bottomHeight;
+
+    // Latar Belakang Putih
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Bingkai Tepi
+    ctx.strokeStyle = "#EA580C";
+    ctx.lineWidth = 10;
+    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+
+    // Judul Header
+    ctx.fillStyle = "#7A2000";
+    ctx.font = "bold 26px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("SCAN PENILAIAN KEGIATAN", size / 2, 46);
+
+    // Gambar QR
+    ctx.drawImage(img, padding, 65, size - (padding * 2), size - (padding * 2));
+
+    // Nama Kegiatan & Metadata
+    ctx.fillStyle = "#1E293B";
+    ctx.font = "bold 20px 'Plus Jakarta Sans', Arial, sans-serif";
+    const eventName = currentDashboardData.event.nama_kegiatan || "Kegiatan SMP";
+    const truncatedName = eventName.length > 40 ? eventName.substring(0, 37) + "..." : eventName;
+    ctx.fillText(truncatedName, size / 2, size + 28);
+
+    ctx.fillStyle = "#EA580C";
+    ctx.font = "bold 15px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.fillText("BIDANG SMP DISDIKBUD KARANGANYAR", size / 2, size + 60);
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.fillText("📅 " + (currentDashboardData.event.tanggal || "-") + "  •  📍 " + (currentDashboardData.event.tempat || "-"), size / 2, size + 92);
+
+    // Export sebagai JPG
+    const jpgUrl = canvas.toDataURL("image/jpeg", 0.95);
+    const link = document.createElement("a");
+    const cleanFileName = `QR_Penilaian_${eventName.replace(/[\/\\?*\[\]:]/g, "-")}.jpg`;
+    link.download = cleanFileName;
+    link.href = jpgUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    hideLoader();
+    showToast("Barcode JPG berhasil disimpan ke perangkat Anda!", "success", "Unduh Selesai");
+  };
+
+  img.onerror = () => {
+    hideLoader();
+    showToast("Gagal memproses gambar QR Code ke format JPG.", "error", "Gagal Unduh");
+  };
+}
+
+/**
+ * Custom Toast Notifications
+ */
+function showToast(message, type = "info", title = "") {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+
+  const item = document.createElement("div");
+  item.className = `toast-item toast-${type}`;
+
+  let iconText = "ℹ️";
+  if (type === "success") iconText = "✓";
+  if (type === "error") iconText = "✕";
+  if (type === "warning") iconText = "⚠️";
+
+  item.innerHTML = `
+    <div class="toast-icon">${iconText}</div>
+    <div class="flex-1 text-xs">
+      ${title ? `<div class="font-extrabold text-slate-800 text-sm mb-0.5">${title}</div>` : ""}
+      <div class="text-slate-600 leading-snug">${message}</div>
+    </div>
+  `;
+
+  container.appendChild(item);
+
+  setTimeout(() => {
+    item.classList.add("toast-leave");
+    setTimeout(() => item.remove(), 350);
+  }, 4000);
+}
+
+function showLoader(text = "Memproses data...") {
+  const loader = document.getElementById("global-loader");
+  const loaderText = document.getElementById("global-loader-text");
+  if (loaderText) loaderText.innerText = text;
+  if (loader) loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  const loader = document.getElementById("global-loader");
+  if (loader) loader.classList.add("hidden");
 }
