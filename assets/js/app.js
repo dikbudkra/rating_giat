@@ -183,20 +183,39 @@ function setupFormListeners(event) {
     submitBtn.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Mengirimkan Penilaian...`;
     showLoader("Mengirimkan penilaian Anda ke server...");
 
+    // Kumpulkan catatan penjelasan per aspek jika diisi
+    let catatanList = [];
+    const catNara = document.getElementById("catatan-narasumber") ? document.getElementById("catatan-narasumber").value.trim() : "";
+    const catMat = document.getElementById("catatan-materi") ? document.getElementById("catatan-materi").value.trim() : "";
+    const catPan = document.getElementById("catatan-panitia") ? document.getElementById("catatan-panitia").value.trim() : "";
+    const catKep = document.getElementById("catatan-kepuasan") ? document.getElementById("catatan-kepuasan").value.trim() : "";
+    const catTmpFas = document.getElementById("catatan-tempat-fasilitas") ? document.getElementById("catatan-tempat-fasilitas").value.trim() : "";
+    const catTmpPel = document.getElementById("catatan-tempat-pelayanan") ? document.getElementById("catatan-tempat-pelayanan").value.trim() : "";
+
+    if (catNara) catatanList.push(`[Narasumber: ${catNara}]`);
+    if (catMat) catatanList.push(`[Materi: ${catMat}]`);
+    if (catPan) catatanList.push(`[Panitia: ${catPan}]`);
+    if (catKep) catatanList.push(`[Kepuasan: ${catKep}]`);
+    if (catTmpFas) catatanList.push(`[Fasilitas Tempat: ${catTmpFas}]`);
+    if (catTmpPel) catatanList.push(`[Pelayanan Tempat: ${catTmpPel}]`);
+
+    const saranUmum = document.getElementById("input-saran").value.trim();
+    const fullSaran = [catatanList.join(" "), saranUmum].filter(Boolean).join("\n\n");
+
     const payload = {
       action: "submitRating",
       id_kegiatan: event.id_kegiatan,
       mode_identitas: modeData.checked ? "DATA" : "ANONYMOUS",
       nama: document.getElementById("input-nama").value.trim(),
       asal_sekolah: document.getElementById("input-sekolah").value.trim(),
-      jabatan: document.getElementById("input-jabatan").value,
+      jabatan: document.getElementById("input-jabatan").value.trim(),
       nilai_narasumber: narasumber,
       nilai_materi: materi,
       nilai_fasilitas_panitia: panitia,
       nilai_kepuasan: kepuasan,
       nilai_tempat_fasilitas: tempatFas,
       nilai_tempat_pelayanan: tempatPel,
-      saran_masukan: document.getElementById("input-saran").value.trim(),
+      saran_masukan: fullSaran,
       rekomendasi_topik: document.getElementById("input-rekomendasi").value.trim()
     };
 

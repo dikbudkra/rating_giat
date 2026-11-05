@@ -119,13 +119,13 @@
         <div id="already-timestamp" class="text-xs text-slate-400 mb-6"></div>
 
         <!-- Kartu Bintang yang Pernah Diberikan -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto text-center">
-          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto text-center">
+          <div class="w-full sm:w-60 bg-slate-50 border border-slate-200 rounded-xl p-4">
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Mutu Kegiatan</span>
             <div id="already-stars-kegiatan" class="star-display-container justify-center mb-1"></div>
             <div id="already-score-kegiatan" class="text-lg font-black text-slate-800"></div>
           </div>
-          <div id="already-card-tempat" class="bg-slate-50 border border-slate-200 rounded-xl p-4 hidden">
+          <div id="already-card-tempat" class="w-full sm:w-60 bg-slate-50 border border-slate-200 rounded-xl p-4 hidden">
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Tempat & Fasilitas</span>
             <div id="already-stars-tempat" class="star-display-container justify-center mb-1"></div>
             <div id="already-score-tempat" class="text-lg font-black text-slate-800"></div>
@@ -152,10 +152,10 @@
 
       <form id="rating-form" class="space-y-6">
 
-        <!-- 1. IDENTITAS RESPONDEN -->
+        <!-- IDENTITAS RESPONDEN -->
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
-          <h3 class="text-base font-extrabold text-slate-800 mb-1 flex items-center gap-2">
-            <span class="text-orange-600">01.</span> Data Identitas Responden
+          <h3 class="text-base font-extrabold text-slate-800 mb-1">
+            Data Identitas Responden
           </h3>
           <p class="text-xs text-slate-500 mb-4">
             Pilih apakah Anda ingin mencantumkan identitas satuan pendidikan atau mengisi secara rahasia.
@@ -194,23 +194,17 @@
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Jabatan / Peran</label>
-                <select id="input-jabatan" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white">
-                  <option value="Kepala Sekolah">Kepala Sekolah</option>
-                  <option value="Guru Mapel" selected>Guru Mata Pelajaran</option>
-                  <option value="Guru BK">Guru BK</option>
-                  <option value="Tenaga Administrasi / Operator">Tenaga Administrasi / Operator</option>
-                  <option value="Lainnya">Lainnya</option>
-                </select>
+                <input type="text" id="input-jabatan" placeholder="Contoh: Guru Matematika / Kepala Sekolah / Operator" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white">
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 2. PENILAIAN MUTU KEGIATAN (SKALA 1-10) -->
+        <!-- PENILAIAN MUTU KEGIATAN (SKALA 1-10) -->
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-6">
           <div>
-            <h3 class="text-base font-extrabold text-slate-800 mb-1 flex items-center gap-2">
-              <span class="text-orange-600">02.</span> Penilaian Mutu Kegiatan
+            <h3 class="text-base font-extrabold text-slate-800 mb-1">
+              Penilaian Mutu Kegiatan
             </h3>
             <p class="text-xs text-slate-500">
               Sentuh angka <strong class="text-blue-600">1 (Sangat Buruk)</strong> sampai <strong class="text-blue-600">10 (Istimewa / Sangat Baik)</strong>.
@@ -239,6 +233,7 @@
               <input type="radio" name="nilai_narasumber" id="a-9" value="9" class="rating-pill-input sr-only"><label for="a-9" class="rating-pill-label">9</label>
               <input type="radio" name="nilai_narasumber" id="a-10" value="10" class="rating-pill-input sr-only"><label for="a-10" class="rating-pill-label">10</label>
             </div>
+            <input type="text" id="catatan-narasumber" placeholder="Penjelasan / catatan nilai narasumber (opsional)..." class="mt-2 w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-orange-500 bg-slate-50/70 text-slate-700">
           </div>
 
           <!-- Aspek B: Materi -->
@@ -261,6 +256,7 @@
               <input type="radio" name="nilai_materi" id="b-9" value="9" class="rating-pill-input sr-only"><label for="b-9" class="rating-pill-label">9</label>
               <input type="radio" name="nilai_materi" id="b-10" value="10" class="rating-pill-input sr-only"><label for="b-10" class="rating-pill-label">10</label>
             </div>
+            <input type="text" id="catatan-materi" placeholder="Penjelasan / catatan nilai materi (opsional)..." class="mt-2 w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-orange-500 bg-slate-50/70 text-slate-700">
           </div>
 
           <!-- Aspek C: Penyelenggaraan Panitia -->
@@ -283,6 +279,7 @@
               <input type="radio" name="nilai_fasilitas_panitia" id="c-9" value="9" class="rating-pill-input sr-only"><label for="c-9" class="rating-pill-label">9</label>
               <input type="radio" name="nilai_fasilitas_panitia" id="c-10" value="10" class="rating-pill-input sr-only"><label for="c-10" class="rating-pill-label">10</label>
             </div>
+            <input type="text" id="catatan-panitia" placeholder="Penjelasan / catatan nilai panitia (opsional)..." class="mt-2 w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-orange-500 bg-slate-50/70 text-slate-700">
           </div>
 
           <!-- Aspek D: Kepuasan Menyeluruh -->
@@ -305,16 +302,17 @@
               <input type="radio" name="nilai_kepuasan" id="d-9" value="9" class="rating-pill-input sr-only"><label for="d-9" class="rating-pill-label">9</label>
               <input type="radio" name="nilai_kepuasan" id="d-10" value="10" class="rating-pill-input sr-only"><label for="d-10" class="rating-pill-label">10</label>
             </div>
+            <input type="text" id="catatan-kepuasan" placeholder="Penjelasan / catatan kepuasan umum (opsional)..." class="mt-2 w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-orange-500 bg-slate-50/70 text-slate-700">
           </div>
 
         </div>
 
-        <!-- 3. PENILAIAN TEMPAT ACARA (KONDISIONAL / TOGGLE ON/OFF) -->
+        <!-- PENILAIAN TEMPAT ACARA (KONDISIONAL / TOGGLE ON/OFF) -->
         <div id="section-penilaian-lokasi" class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-6 hidden">
           <div>
             <div class="inline-block bg-orange-100 text-orange-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-1">Evaluasi Fasilitas Gedung / Hotel</div>
-            <h3 class="text-base font-extrabold text-slate-800 mb-1 flex items-center gap-2">
-              <span class="text-orange-600">03.</span> Penilaian Tempat Acara
+            <h3 class="text-base font-extrabold text-slate-800 mb-1">
+              Penilaian Tempat Acara
             </h3>
             <p class="text-xs text-slate-500">
               Evaluasi kondisi fasilitas fisik dan pelayanan dari pihak pengelola tempat/hotel.
@@ -341,6 +339,7 @@
               <input type="radio" name="nilai_tempat_fasilitas" id="tf-9" value="9" class="rating-pill-input sr-only"><label for="tf-9" class="rating-pill-label">9</label>
               <input type="radio" name="nilai_tempat_fasilitas" id="tf-10" value="10" class="rating-pill-input sr-only"><label for="tf-10" class="rating-pill-label">10</label>
             </div>
+            <input type="text" id="catatan-tempat-fasilitas" placeholder="Penjelasan / catatan fasilitas tempat (opsional)..." class="mt-2 w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-orange-500 bg-slate-50/70 text-slate-700">
           </div>
 
           <!-- Pelayanan Tempat -->
@@ -363,13 +362,14 @@
               <input type="radio" name="nilai_tempat_pelayanan" id="tp-9" value="9" class="rating-pill-input sr-only"><label for="tp-9" class="rating-pill-label">9</label>
               <input type="radio" name="nilai_tempat_pelayanan" id="tp-10" value="10" class="rating-pill-input sr-only"><label for="tp-10" class="rating-pill-label">10</label>
             </div>
+            <input type="text" id="catatan-tempat-pelayanan" placeholder="Penjelasan / catatan pelayanan tempat (opsional)..." class="mt-2 w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-orange-500 bg-slate-50/70 text-slate-700">
           </div>
         </div>
 
-        <!-- 4. UMPAN BALIK TERBUKA (KOLOM LEGA) -->
+        <!-- MASUKAN TERBUKA (KOLOM LEGA) -->
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
-          <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-            <span class="text-orange-600">04.</span> Masukan & Rekomendasi
+          <h3 class="text-base font-extrabold text-slate-800">
+            Masukan & Rekomendasi
           </h3>
 
           <div>
@@ -415,11 +415,11 @@
           </p>
         </div>
 
-        <!-- Dua Kartu Bintang Besar -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto pt-2">
+        <!-- Dua Kartu Bintang Besar (Otomatis di Tengah Jika 1 Kartu, Bersanding Jika 2 Kartu) -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-xl mx-auto pt-2">
           
           <!-- Bintang Mutu Kegiatan -->
-          <div class="bg-orange-50/70 border border-orange-200 rounded-2xl p-5 text-center shadow-sm">
+          <div class="w-full sm:w-64 bg-orange-50/70 border border-orange-200 rounded-2xl p-5 text-center shadow-sm">
             <span class="text-xs font-black text-orange-800 uppercase tracking-wider block mb-2">⭐ Mutu Kegiatan</span>
             <div id="success-stars-kegiatan" class="star-display-container justify-center mb-2"></div>
             <div id="success-score-kegiatan" class="text-2xl font-black text-slate-800"></div>
@@ -427,7 +427,7 @@
           </div>
 
           <!-- Bintang Tempat Acara (Kondisional) -->
-          <div id="success-card-tempat" class="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center shadow-sm hidden">
+          <div id="success-card-tempat" class="w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center shadow-sm hidden">
             <span class="text-xs font-black text-slate-700 uppercase tracking-wider block mb-2">🏨 Fasilitas Tempat</span>
             <div id="success-stars-tempat" class="star-display-container justify-center mb-2"></div>
             <div id="success-score-tempat" class="text-2xl font-black text-slate-800"></div>
