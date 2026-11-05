@@ -555,8 +555,7 @@ function handleAskGemini(params) {
     "Jawab pertanyaan secara profesional, ringkas, terstruktur menggunakan bullet points, dan objektif berbasis data di atas. " +
     "JANGAN mengarang data di luar konteks masukan peserta yang diberikan.";
 
-  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
-
+  // Konfigurasi Payload Gemini
   const payload = {
     contents: [
       {
@@ -579,25 +578,56 @@ function handleAskGemini(params) {
     muteHttpExceptions: true
   };
 
-  const response = UrlFetchApp.fetch(apiUrl, options);
-  const respCode = response.getResponseCode();
-  const respText = response.getContentText();
+  // Daftar Model Gemini dengan Fallback Otomatis
+  const modelsToTry = [
+    { name: "gemini-3.1-flash-lite", label: "Model Utama" },
+    { name: "gemini-3.8-flash", label: "Model Cadangan 1" },
+    { name: "gemini-3-flash-preview", label: "Model Cadangan 2" }
+  ];
 
-  if (respCode !== 200) {
-    return {
-      status: "error",
-      message: "Gagal menghubungi Gemini API (Code: " + respCode + "): " + respText
-    };
+  let answer = "";
+  let lastError = "";
+  let successfulModel = "";
+
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const currentModel = modelsToTry[i];
+    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + currentModel.name + ":generateContent?key=" + apiKey;
+
+    try {
+      const response = UrlFetchApp.fetch(apiUrl, options);
+      const respCode = response.getResponseCode();
+      const respText = response.getContentText();
+
+      if (respCode === 200) {
+        const respJson = JSON.parse(respText);
+        if (respJson.candidates && respJson.candidates.length > 0 && 
+            respJson.candidates[0].content && 
+            respJson.candidates[0].content.parts && 
+            respJson.candidates[0].content.parts.length > 0) {
+          answer = respJson.candidates[0].content.parts[0].text;
+          successfulModel = currentModel.name;
+          break; // Berhasil! Keluar dari loop fallback
+        }
+      } else {
+        lastError = "Model " + currentModel.name + " (Code " + respCode + "): " + respText;
+        Logger.log("⚠️ " + lastError + " -> Mencoba model cadangan berikutnya...");
+      }
+    } catch (e) {
+      lastError = "Koneksi ke " + currentModel.name + ": " + e.toString();
+      Logger.log("⚠️ " + lastError + " -> Mencoba model cadangan berikutnya...");
+    }
   }
 
-  const respJson = JSON.parse(respText);
-  let answer = "Tidak ada jawaban yang dihasilkan.";
-  if (respJson.candidates && respJson.candidates.length > 0 && respJson.candidates[0].content) {
-    answer = respJson.candidates[0].content.parts[0].text;
+  if (!answer) {
+    return {
+      status: "error",
+      message: "Seluruh model Gemini gagal merespon. Catatan: " + lastError
+    };
   }
 
   return {
     status: "success",
+    model_used: successfulModel,
     answer: answer
   };
 }
