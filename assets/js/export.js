@@ -30,7 +30,7 @@ window.ExportEngine = {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
-    doc.text("Bidang Pembinaan SMP - Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar", 105, 24, { align: "center" });
+    doc.text("Bidang SMP - Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar", 105, 24, { align: "center" });
 
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.5);
@@ -159,7 +159,7 @@ window.ExportEngine = {
       </head>
       <body>
         <h2>LAPORAN HASIL PENILAIAN KEGIATAN</h2>
-        <p class='sub'>Bidang Pembinaan SMP - Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar</p>
+        <p class='sub'>Bidang SMP - Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar</p>
         <hr/>
 
         <h3>A. Informasi Kegiatan</h3>
