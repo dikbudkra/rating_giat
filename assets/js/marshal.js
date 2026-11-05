@@ -335,24 +335,66 @@ function setupEventListeners() {
 }
 
 /**
- * Logika Asisten Data Gemini AI
+ * Logika Asisten Data Gemini AI (Sesuai Referensi Pengguna)
  */
+function getGeminiWelcomeCardHtml() {
+  return `
+    <div class="flex items-start gap-3">
+      <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">
+        ✦
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3 flex-1 max-w-2xl">
+        <div class="font-bold text-sm text-slate-800">Asisten Data Kegiatan</div>
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+          Halo Panitia! Saya siap membantu menjawab pertanyaan seputar hasil evaluasi dan penilaian kegiatan yang sedang aktif saat ini.
+        </p>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="text-xs font-bold text-slate-700 mb-2.5">Contoh pertanyaan siap klik:</div>
+          <div class="flex flex-wrap gap-2">
+            <button class="gemini-chip-btn rounded-full border border-slate-300 bg-white hover:bg-purple-50 hover:border-purple-300 text-slate-700 hover:text-purple-700 text-xs px-3.5 py-1.5 font-medium shadow-xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer" data-prompt="Siapa saja nama responden dan dari sekolah mana yang sudah mengisi form penilaian ini?">
+              <span>👥</span> Siapa saja yang sudah mengisi?
+            </button>
+            <button class="gemini-chip-btn rounded-full border border-slate-300 bg-white hover:bg-purple-50 hover:border-purple-300 text-slate-700 hover:text-purple-700 text-xs px-3.5 py-1.5 font-medium shadow-xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer" data-prompt="Berapa rata-rata nilai evaluasi untuk narasumber dan materi kegiatan?">
+              <span>⭐</span> Nilai narasumber & materi?
+            </button>
+            <button class="gemini-chip-btn rounded-full border border-slate-300 bg-white hover:bg-purple-50 hover:border-purple-300 text-slate-700 hover:text-purple-700 text-xs px-3.5 py-1.5 font-medium shadow-xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer" data-prompt="Apa keluhan atau catatan fasilitas tempat acara dan makanan/konsumsi?">
+              <span>🏨</span> Catatan tempat & konsumsi?
+            </button>
+            <button class="gemini-chip-btn rounded-full border border-slate-300 bg-white hover:bg-purple-50 hover:border-purple-300 text-slate-700 hover:text-purple-700 text-xs px-3.5 py-1.5 font-medium shadow-xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer" data-prompt="Rangkum topik pelatihan atau materi apa yang paling banyak diusulkan peserta untuk kegiatan berikutnya?">
+              <span>💡</span> Rekomendasi topik berikutnya?
+            </button>
+            <button class="gemini-chip-btn rounded-full border border-slate-300 bg-white hover:bg-purple-50 hover:border-purple-300 text-slate-700 hover:text-purple-700 text-xs px-3.5 py-1.5 font-medium shadow-xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer" data-prompt="Buatkan ringkasan eksekutif komprehensif dari hasil evaluasi kegiatan ini!">
+              <span>📋</span> Ringkasan eksekutif kegiatan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function resetGeminiChatUI() {
+  const chatLog = document.getElementById("gemini-chat-log");
+  if (chatLog) {
+    chatLog.innerHTML = getGeminiWelcomeCardHtml();
+    // Pasang event listener ke tombol contoh pertanyaan siap klik
+    chatLog.querySelectorAll(".gemini-chip-btn").forEach(btn => {
+      btn.onclick = () => {
+        const prompt = btn.getAttribute("data-prompt");
+        sendPromptToGemini(prompt);
+      };
+    });
+  }
+  const input = document.getElementById("input-gemini-query");
+  if (input) input.value = "";
+}
+
 function closeAndClearGeminiChat() {
   const modal = document.getElementById("modal-gemini-chat");
   if (modal) {
     modal.classList.add("hidden");
   }
-  // Auto-clear riwayat obrolan kembali ke salam pembuka
-  const chatLog = document.getElementById("gemini-chat-log");
-  if (chatLog) {
-    chatLog.innerHTML = `
-      <div class="bg-purple-50 text-purple-900 border border-purple-100 rounded-2xl rounded-tl-none p-4 text-xs sm:text-sm leading-relaxed max-w-lg shadow-sm">
-        Halo Panitia Bidang SMP! Saya siap menganalisis data respon evaluasi khusus untuk kegiatan yang sedang aktif saat ini. Anda dapat mengklik tombol pintasan di atas atau mengetik pertanyaan bebas di bawah.
-      </div>
-    `;
-  }
-  const input = document.getElementById("input-gemini-query");
-  if (input) input.value = "";
+  resetGeminiChatUI();
 }
 
 function setupGeminiAssistant() {
@@ -362,6 +404,17 @@ function setupGeminiAssistant() {
 
   if (geminiCard) {
     geminiCard.onclick = () => {
+      // Sinkronkan data kegiatan aktif & badge jumlah responden
+      const eventName = (currentDashboardData && currentDashboardData.event && currentDashboardData.event.nama_kegiatan) ? currentDashboardData.event.nama_kegiatan : "KEGIATAN BIDANG SMP";
+      const count = (currentDashboardData && currentDashboardData.count) ? currentDashboardData.count : 0;
+      
+      const nameEl = document.getElementById("gemini-modal-event-name");
+      if (nameEl) nameEl.innerText = eventName;
+      
+      const badgeEl = document.getElementById("gemini-modal-count-badge");
+      if (badgeEl) badgeEl.innerText = `${count} Responden`;
+
+      resetGeminiChatUI();
       modal.classList.remove("hidden");
     };
   }
@@ -378,14 +431,6 @@ function setupGeminiAssistant() {
       }
     };
   }
-
-  // Chips Pintasan Cepat
-  document.querySelectorAll(".gemini-chip-btn").forEach(btn => {
-    btn.onclick = () => {
-      const prompt = btn.getAttribute("data-prompt");
-      sendPromptToGemini(prompt);
-    };
-  });
 
   // Kirim Pertanyaan Custom
   const formChat = document.getElementById("form-gemini-chat");
@@ -409,7 +454,7 @@ async function sendPromptToGemini(questionText) {
   const userMsg = document.createElement("div");
   userMsg.className = "flex justify-end mb-3";
   userMsg.innerHTML = `
-    <div class="bg-blue-600 text-white rounded-2xl rounded-tr-none px-4 py-2.5 max-w-md text-sm shadow">
+    <div class="bg-blue-600 text-white rounded-2xl rounded-tr-none px-4 py-2.5 max-w-md text-xs sm:text-sm shadow-sm font-medium">
       ${questionText}
     </div>
   `;
@@ -417,10 +462,13 @@ async function sendPromptToGemini(questionText) {
 
   // Tambahkan bubble loading bot
   const botLoading = document.createElement("div");
-  botLoading.className = "flex justify-start mb-3";
+  botLoading.className = "flex items-start gap-3 mb-3";
   botLoading.innerHTML = `
-    <div class="bg-purple-50 text-purple-900 border border-purple-100 rounded-2xl rounded-tl-none px-4 py-3 max-w-lg text-sm shadow-sm flex items-center gap-2">
-      <span class="animate-spin">✦</span> Sedang menganalisis respon kegiatan yang aktif...
+    <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">
+      ✦
+    </div>
+    <div class="bg-white border border-slate-200 text-slate-600 rounded-2xl rounded-tl-none px-4 py-3 max-w-lg text-xs sm:text-sm shadow-xs flex items-center gap-2">
+      <span class="animate-spin text-purple-600 text-base">✦</span> Sedang membaca data evaluasi...
     </div>
   `;
   chatLog.appendChild(botLoading);
@@ -440,20 +488,30 @@ async function sendPromptToGemini(questionText) {
     botLoading.remove();
 
     const botMsg = document.createElement("div");
-    botMsg.className = "flex justify-start mb-3";
+    botMsg.className = "flex items-start gap-3 mb-3";
 
     if (result.status === "success") {
       latestAiSummary = result.answer; // Simpan untuk disematkan di laporan PDF/DOCX
       botMsg.innerHTML = `
-        <div class="bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-none px-4 py-3 max-w-lg text-sm shadow-sm leading-relaxed prose prose-sm">
-          <div class="font-bold text-purple-700 text-xs mb-1 flex items-center gap-1">✦ Asisten Gemini AI</div>
-          ${formatMarkdown(result.answer)}
+        <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">
+          ✦
+        </div>
+        <div class="bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-none p-4 sm:p-5 max-w-xl text-xs sm:text-sm shadow-xs leading-relaxed space-y-1.5 flex-1">
+          <div class="font-bold text-purple-700 text-xs flex items-center gap-1.5 mb-1">
+            <span>✦</span> Asisten Gemini AI
+          </div>
+          <div class="prose prose-sm text-slate-800 leading-relaxed text-xs sm:text-sm">
+            ${formatMarkdown(result.answer)}
+          </div>
         </div>
       `;
     } else {
       botMsg.innerHTML = `
-        <div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl rounded-tl-none px-4 py-2.5 max-w-lg text-sm">
-          ⚠️ ${result.message}
+        <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">
+          ⚠️
+        </div>
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl rounded-tl-none px-4 py-3 max-w-lg text-xs sm:text-sm shadow-xs">
+          ${result.message}
         </div>
       `;
     }
@@ -465,8 +523,11 @@ async function sendPromptToGemini(questionText) {
     console.error(e);
     botLoading.remove();
     const botErr = document.createElement("div");
-    botErr.className = "flex justify-start mb-3";
-    botErr.innerHTML = `<div class="bg-red-50 text-red-600 rounded-xl px-4 py-2 text-sm">Gagal terhubung ke Asisten Gemini.</div>`;
+    botErr.className = "flex items-start gap-3 mb-3";
+    botErr.innerHTML = `
+      <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">⚠️</div>
+      <div class="bg-red-50 text-red-600 rounded-xl px-4 py-2 text-xs sm:text-sm">Gagal terhubung ke Asisten Gemini.</div>
+    `;
     chatLog.appendChild(botErr);
   }
 }
