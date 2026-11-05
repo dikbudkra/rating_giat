@@ -72,7 +72,7 @@ function renderActiveEvent(event) {
   // Tampilkan data di banner header
   document.getElementById("banner-title").innerText = event.nama_kegiatan;
   document.getElementById("banner-subtitle").innerText = `Bidang SMP - Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar`;
-  document.getElementById("info-tgl-tempat").innerText = `📅 ${event.tanggal}  •  📍 ${event.tempat}`;
+  document.getElementById("info-tgl-tempat").innerText = `📅 ${formatDateIndo(event.tanggal)}  •  📍 ${event.tempat}`;
 
   // Atur visibilitas penilaian tempat acara
   const lokasiSection = document.getElementById("section-penilaian-lokasi");
@@ -344,4 +344,21 @@ function showLoader(text = "Memproses data...") {
 function hideLoader() {
   const loader = document.getElementById("global-loader");
   if (loader) loader.classList.add("hidden");
+}
+
+/**
+ * Format Tanggal Indonesia: hari, DD-MM-YYYY
+ */
+function formatDateIndo(dateInput) {
+  if (!dateInput) return "-";
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return String(dateInput);
+
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const dayName = days[date.getDay()];
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+
+  return `${dayName}, ${dd}-${mm}-${yyyy}`;
 }

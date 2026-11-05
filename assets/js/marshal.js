@@ -143,7 +143,7 @@ function renderActiveDashboard(data) {
 
   // Data Kegiatan
   document.getElementById("dash-event-title").innerText = event.nama_kegiatan;
-  document.getElementById("dash-event-meta").innerText = `📅 ${event.tanggal}  •  📍 ${event.tempat}`;
+  document.getElementById("dash-event-meta").innerText = `📅 ${formatDateIndo(event.tanggal)}  •  📍 ${event.tempat}`;
 
   // Live Counter
   document.getElementById("metric-total-responden").innerText = metrics.total_responden;
@@ -278,69 +278,32 @@ function setupEventListeners() {
     };
   }
 
-  // Tombol Trigger Reset (Hanya aktif jika PDF & DOCX terunduh)
-  const btnTriggerReset = document.getElementById("btn-trigger-reset");
-  if (btnTriggerReset) {
-    btnTriggerReset.onclick = () => {
-      if (!ExportEngine.pdfDownloaded || !ExportEngine.docxDownloaded) {
-        showToast("PENTING: Unduh kedua file (PDF dan DOCX) terlebih dahulu sebelum dapat menutup kegiatan!", "warning", "Syarat Belum Terpenuhi");
-        return;
+  // Tombol Buka Modal Ganti Kegiatan
+  const btnOpenGanti = document.getElementById("btn-open-ganti-modal");
+  if (btnOpenGanti) {
+    btnOpenGanti.onclick = () => {
+      if (currentDashboardData && currentDashboardData.event) {
+        document.getElementById("modal-ganti-active-title").innerText = currentDashboardData.event.nama_kegiatan;
       }
-      document.getElementById("modal-reset-confirm").classList.remove("hidden");
+      window.updateModalGantiStatus();
+      document.getElementById("modal-ganti-kegiatan").classList.remove("hidden");
     };
   }
 
-  // Konfirmasi Reset Password
-  const btnConfirmReset = document.getElementById("btn-confirm-reset-submit");
-  if (btnConfirmReset) {
-    btnConfirmReset.onclick = async () => {
-      const pwd = document.getElementById("input-reset-password").value.trim();
-      const err = document.getElementById("reset-password-error");
+  // Tombol Unduh di dalam Modal Ganti Kegiatan
+  const btnModalPdf = document.getElementById("btn-modal-unduh-pdf");
+  if (btnModalPdf) {
+    btnModalPdf.onclick = () => {
+      showToast("Sedang menyiapkan berkas laporan PDF...", "info", "Mengekspor");
+      ExportEngine.downloadPDF(currentDashboardData, latestAiSummary);
+    };
+  }
 
-      if (!pwd) {
-        err.innerText = "Masukkan password Marshal!";
-        err.classList.remove("hidden");
-        showToast("Masukkan password Marshal untuk konfirmasi!", "warning", "Password Kosong");
-        return;
-      }
-
-      btnConfirmReset.disabled = true;
-      btnConfirmReset.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Mengarsipkan Data...`;
-      showLoader("Mengarsipkan data respon ke Google Sheets...");
-
-      try {
-        const res = await fetch(CONFIG.GAS_WEB_APP_URL, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "closeAndArchiveEvent",
-            password: pwd
-          })
-        });
-        const result = await res.json();
-        hideLoader();
-
-        if (result.status === "success") {
-          showToast(result.message, "success", "Pengarsipan Sukses");
-          document.getElementById("modal-reset-confirm").classList.add("hidden");
-          // Reset export states
-          ExportEngine.pdfDownloaded = false;
-          ExportEngine.docxDownloaded = false;
-          loadDashboardData();
-        } else {
-          err.innerText = result.message;
-          err.classList.remove("hidden");
-          showToast(result.message, "error", "Gagal Mengarsipkan");
-        }
-      } catch (e) {
-        console.error(e);
-        hideLoader();
-        err.innerText = "Gagal menghubungi server.";
-        err.classList.remove("hidden");
-        showToast("Gagal menghubungi server Google Apps Script.", "error", "Koneksi Bermasalah");
-      } finally {
-        btnConfirmReset.disabled = false;
-        btnConfirmReset.innerHTML = "Konfirmasi & Arsipkan Sekarang";
-      }
+  const btnModalDocx = document.getElementById("btn-modal-unduh-docx");
+  if (btnModalDocx) {
+    btnModalDocx.onclick = () => {
+      showToast("Sedang menyiapkan berkas laporan DOCX...", "info", "Mengekspor");
+      ExportEngine.downloadDOCX(currentDashboardData, latestAiSummary);
     };
   }
 
@@ -588,7 +551,7 @@ function downloadQrAsJpg() {
 
     ctx.fillStyle = "#64748B";
     ctx.font = "14px 'Plus Jakarta Sans', Arial, sans-serif";
-    ctx.fillText("📅 " + (currentDashboardData.event.tanggal || "-") + "  •  📍 " + (currentDashboardData.event.tempat || "-"), size / 2, size + 92);
+    ctx.fillText("📅 " + formatDateIndo(currentDashboardData.event.tanggal) + "  •  📍 " + (currentDashboardData.event.tempat || "-"), size / 2, size + 92);
 
     // Export sebagai JPG
     const jpgUrl = canvas.toDataURL("image/jpeg", 0.95);
@@ -652,3 +615,130 @@ function hideLoader() {
   const loader = document.getElementById("global-loader");
   if (loader) loader.classList.add("hidden");
 }
+
+/**
+ * Format Tanggal Indonesia: hari, DD-MM-YYYY
+ */
+function formatDateIndo(dateInput) {
+  if (!dateInput) return "-";
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return String(dateInput);
+
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const dayName = days[date.getDay()];
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+
+  return `${dayName}, ${dd}-${mm}-${yyyy}`;
+}
+
+/**
+ * Status Update Modal Ganti Kegiatan (Langkah 1 & Langkah 2)
+ */
+window.updateModalGantiStatus = function() {
+  const badgePdf = document.getElementById("modal-badge-pdf");
+  const badgeDocx = document.getElementById("modal-badge-docx");
+  const lockNote = document.getElementById("modal-ganti-lock-note");
+  const step2 = document.getElementById("container-langkah-2");
+  const btnSubmit = document.getElementById("btn-confirm-reset-submit");
+
+  if (ExportEngine.pdfDownloaded && badgePdf) {
+    badgePdf.innerText = "✓ Terunduh";
+    badgePdf.className = "bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md";
+  }
+
+  if (ExportEngine.docxDownloaded && badgeDocx) {
+    badgeDocx.innerText = "✓ Terunduh";
+    badgeDocx.className = "bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md";
+  }
+
+  if (ExportEngine.pdfDownloaded && ExportEngine.docxDownloaded) {
+    if (step2) {
+      step2.classList.remove("opacity-50", "pointer-events-none");
+      step2.classList.add("bg-white", "shadow-sm");
+    }
+    if (lockNote) {
+      lockNote.innerHTML = "<span class='text-emerald-600 font-bold'>✓ Berkas arsip lengkap! Silakan masukkan password untuk konfirmasi ganti kegiatan.</span>";
+    }
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer";
+    }
+  }
+};
+
+/**
+ * Konfirmasi Ganti Kegiatan & Arsip Data
+ */
+window.handleConfirmGantiSubmit = async function() {
+  if (!ExportEngine.pdfDownloaded || !ExportEngine.docxDownloaded) {
+    showToast("Wajib mengunduh kedua berkas arsip (PDF dan DOCX) terlebih dahulu!", "warning", "Langkah 1 Belum Lengkap");
+    return;
+  }
+
+  const pwdInput = document.getElementById("input-reset-password");
+  const pwd = pwdInput ? pwdInput.value.trim() : "";
+  const err = document.getElementById("reset-password-error");
+
+  if (!pwd) {
+    if (err) {
+      err.innerText = "Masukkan password Marshal!";
+      err.classList.remove("hidden");
+    }
+    showToast("Masukkan password Marshal untuk konfirmasi!", "warning", "Password Kosong");
+    return;
+  }
+
+  const btnSubmit = document.getElementById("btn-confirm-reset-submit");
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Mengarsipkan Data...`;
+  }
+  showLoader("Mengarsipkan data respon ke Google Sheets...");
+
+  try {
+    const res = await fetch(CONFIG.GAS_WEB_APP_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "closeAndArchiveEvent",
+        password: pwd
+      })
+    });
+    const result = await res.json();
+    hideLoader();
+
+    if (result.status === "success") {
+      showToast(result.message, "success", "Pengarsipan Sukses");
+      document.getElementById("modal-ganti-kegiatan").classList.add("hidden");
+      // Reset status
+      ExportEngine.pdfDownloaded = false;
+      ExportEngine.docxDownloaded = false;
+      if (pwdInput) pwdInput.value = "";
+      if (err) err.classList.add("hidden");
+      loadDashboardData();
+    } else {
+      if (err) {
+        err.innerText = result.message;
+        err.classList.remove("hidden");
+      }
+      showToast(result.message, "error", "Gagal Mengarsipkan");
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = "<span>🔄</span> Konfirmasi & Ganti Kegiatan";
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    hideLoader();
+    if (err) {
+      err.innerText = "Gagal menghubungi server.";
+      err.classList.remove("hidden");
+    }
+    showToast("Gagal menghubungi server Google Apps Script.", "error", "Koneksi Bermasalah");
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = "<span>🔄</span> Konfirmasi & Ganti Kegiatan";
+    }
+  }
+};

@@ -173,6 +173,20 @@ function checkMarshalPassword(password) {
   return { authenticated: isMatch };
 }
 
+function formatGasIndoDate(val) {
+  if (!val) return "-";
+  try {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+      const dayName = days[d.getDay()];
+      const dd = Utilities.formatDate(d, "Asia/Jakarta", "dd-MM-yyyy");
+      return dayName + ", " + dd;
+    }
+  } catch (e) {}
+  return String(val);
+}
+
 /**
  * Mengambil kegiatan yang sedang berstatus 'OPEN'
  */
@@ -198,7 +212,7 @@ function getActiveEvent() {
         event: {
           id_kegiatan: row[0],
           nama_kegiatan: row[1],
-          tanggal: row[2],
+          tanggal: formatGasIndoDate(row[2]),
           tempat: row[3],
           is_lokasi_active: row[4] === true || String(row[4]).toLowerCase() === "true"
         }

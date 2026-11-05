@@ -240,15 +240,20 @@
         </div>
       </div>
 
-      <!-- KONTROL PENGARSIPAN & RESET (DENGAN PENGAMAN STRICT) -->
+      <!-- KONTROL EKSPOR LAPORAN & GANTI KEGIATAN -->
       <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-        <div>
-          <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
-            <span>🛡️</span> Ekspor Laporan & Pengarsipan Selesai Acara
-          </h3>
-          <p class="text-xs text-slate-500 mt-0.5">
-            Demi keamanan data kedinasan, Anda wajib mengunduh kedua berkas (PDF & DOCX) sebelum dapat menutup kegiatan ini.
-          </p>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
+              <span>📊</span> Export Laporan
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Unduh rekapitulasi evaluasi kegiatan aktif saat ini ke format PDF atau DOCX.
+            </p>
+          </div>
+          <button id="btn-open-ganti-modal" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2">
+            <span>🔄</span> Ganti Kegiatan
+          </button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -262,14 +267,6 @@
           <button id="btn-export-docx" class="py-3 px-4 rounded-xl border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-between transition">
             <span class="flex items-center gap-2">📝 Unduh Laporan DOCX (Word)</span>
             <span id="badge-docx-downloaded" class="hidden text-green-700 bg-green-100 px-2 py-0.5 rounded text-[10px] font-bold">✓ Terunduh</span>
-          </button>
-        </div>
-
-        <!-- Tombol Tutup & Reset (Terkunci jika belum unduh dua-duanya) -->
-        <div class="pt-2 border-t border-slate-100">
-          <button id="btn-trigger-reset" disabled class="w-full py-3.5 px-6 rounded-xl bg-slate-300 text-slate-500 font-extrabold text-sm opacity-60 cursor-not-allowed transition flex items-center justify-center gap-2">
-            <span>🔒</span>
-            <span>Unduh PDF & DOCX terlebih dahulu untuk membuka tombol arsip</span>
           </button>
         </div>
       </div>
@@ -378,34 +375,86 @@
     </div>
   </div>
 
-  <!-- MODAL KONFIRMASI RESET & ARSIP -->
-  <div id="modal-reset-confirm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4 text-center">
-      <div class="w-14 h-14 bg-red-100 text-red-600 rounded-2xl mx-auto flex items-center justify-center text-2xl font-black">
-        ⚠️
+  <!-- MODAL GANTI KEGIATAN & ARSIP DATA (SESUAI GAMBAR REFERENSI PENGGUNA) -->
+  <div id="modal-ganti-kegiatan" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100">
+      
+      <!-- Header Gelap -->
+      <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white">
+        <div class="flex items-center gap-2.5">
+          <span class="text-amber-400 text-lg">🔄</span>
+          <h3 class="font-bold text-base tracking-tight">Ganti Kegiatan & Arsip Data</h3>
+        </div>
+        <button onclick="document.getElementById('modal-ganti-kegiatan').classList.add('hidden')" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-sm transition">
+          ✕
+        </button>
       </div>
 
-      <div>
-        <h3 class="text-lg font-black text-slate-800">Tutup & Arsipkan Kegiatan?</h3>
-        <p class="text-xs text-slate-600 mt-1 leading-relaxed">
-          Seluruh data respon akan disalin otomatis menjadi tab baru bernama <strong class="text-slate-800">`ARSIP_[Nama Kegiatan]`</strong> di Google Sheets. Tab RESPON akan dikosongkan dan portal web publik kembali ke mode Standby.
-        </p>
-      </div>
+      <div class="p-6 space-y-4">
+        
+        <!-- Peringatan Kegiatan Aktif -->
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <span class="text-amber-600 text-xl flex-shrink-0 mt-0.5">⚠️</span>
+          <div>
+            <div class="text-xs font-bold text-amber-800">Kegiatan aktif saat ini:</div>
+            <div id="modal-ganti-active-title" class="text-sm font-black text-slate-900 mt-0.5">...</div>
+          </div>
+        </div>
 
-      <form onsubmit="event.preventDefault(); document.getElementById('btn-confirm-reset-submit').click();" class="text-left space-y-2 pt-2">
-        <label class="block text-xs font-bold text-slate-700">Ketik Ulang Password Marshal untuk Konfirmasi:</label>
-        <input type="password" id="input-reset-password" placeholder="Password Marshal..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-red-500 font-bold text-center">
-        <div id="reset-password-error" class="text-xs text-red-600 font-bold hidden"></div>
+        <!-- Langkah 1: Wajib Unduh Arsip Sebelum Reset -->
+        <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="bg-red-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full">Langkah 1</span>
+            <span class="font-extrabold text-slate-800 text-xs sm:text-sm">Wajib Unduh Arsip Sebelum Reset</span>
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Untuk keamanan data, kedua berkas di bawah ini <strong class="text-slate-800">wajib diunduh</strong> terlebih dahulu agar tombol reset aktif:
+          </p>
 
-        <div class="flex gap-2 pt-2">
-          <button type="button" onclick="document.getElementById('modal-reset-confirm').classList.add('hidden')" class="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">
+          <div class="space-y-2 pt-1">
+            <!-- Unduh PDF -->
+            <button type="button" id="btn-modal-unduh-pdf" class="w-full p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50/30 hover:bg-emerald-50 text-emerald-900 font-extrabold text-xs flex items-center justify-between transition">
+              <span class="flex items-center gap-2">📄 1. Unduh Laporan Rekapitulasi (.pdf)</span>
+              <span id="modal-badge-pdf" class="bg-slate-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md">Belum Diunduh</span>
+            </button>
+
+            <!-- Unduh DOCX -->
+            <button type="button" id="btn-modal-unduh-docx" class="w-full p-3 rounded-xl border-2 border-amber-500 bg-amber-50/30 hover:bg-amber-50 text-amber-900 font-extrabold text-xs flex items-center justify-between transition">
+              <span class="flex items-center gap-2">📝 2. Unduh Laporan Rekapitulasi (.docx)</span>
+              <span id="modal-badge-docx" class="bg-slate-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md">Belum Diunduh</span>
+            </button>
+          </div>
+
+          <div id="modal-ganti-lock-note" class="text-[11px] text-slate-400 italic flex items-center gap-1 pt-1">
+            <span>🔒</span> Unduh kedua arsip di Langkah 1 untuk membuka tombol reset.
+          </div>
+        </div>
+
+        <!-- Langkah 2: Konfirmasi Password Marshal -->
+        <div id="container-langkah-2" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 opacity-50 pointer-events-none transition-all">
+          <div class="flex items-center gap-2">
+            <span class="bg-orange-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full">Langkah 2</span>
+            <span class="font-extrabold text-slate-800 text-xs sm:text-sm">Konfirmasi Password Marshal</span>
+          </div>
+
+          <form id="form-confirm-ganti" onsubmit="event.preventDefault(); handleConfirmGantiSubmit();" class="space-y-2">
+            <input type="password" id="input-reset-password" placeholder="Ketik Password Marshal..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-red-500 font-bold text-center bg-white">
+            <div id="reset-password-error" class="text-xs text-red-600 font-bold hidden"></div>
+
+            <button type="submit" id="btn-confirm-reset-submit" disabled class="w-full py-2.5 rounded-xl bg-slate-400 text-white font-extrabold text-xs shadow transition flex items-center justify-center gap-2 cursor-not-allowed">
+              <span>🔄</span> Konfirmasi & Ganti Kegiatan
+            </button>
+          </form>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <button type="button" onclick="document.getElementById('modal-ganti-kegiatan').classList.add('hidden')" class="px-5 py-2 rounded-xl bg-slate-500 hover:bg-slate-600 text-white font-bold text-xs transition">
             Batal
           </button>
-          <button type="submit" id="btn-confirm-reset-submit" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs shadow transition">
-            Konfirmasi & Arsipkan
-          </button>
         </div>
-      </form>
+
+      </div>
+
     </div>
   </div>
 

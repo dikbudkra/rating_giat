@@ -39,7 +39,7 @@ window.ExportEngine = {
     // Tabel Info Kegiatan & Ringkasan Metrik
     const eventDetails = [
       ["Nama Kegiatan", ": " + event.nama_kegiatan],
-      ["Tanggal Pelaksanaan", ": " + event.tanggal],
+      ["Tanggal Pelaksanaan", ": " + (typeof formatDateIndo === "function" ? formatDateIndo(event.tanggal) : event.tanggal)],
       ["Tempat / Lokasi", ": " + event.tempat],
       ["Jumlah Responden", ": " + metrics.total_responden + " Orang"],
       ["Rata-rata Skor Kegiatan", ": " + metrics.avg_bintang_kegiatan + " / 5.00 Bintang"],
@@ -165,7 +165,7 @@ window.ExportEngine = {
         <h3>A. Informasi Kegiatan</h3>
         <table style="width: 80%; border: none;">
           <tr><td width="30%"><b>Nama Kegiatan</b></td><td>: ${event.nama_kegiatan}</td></tr>
-          <tr><td><b>Tanggal Pelaksanaan</b></td><td>: ${event.tanggal}</td></tr>
+          <tr><td><b>Tanggal Pelaksanaan</b></td><td>: ${typeof formatDateIndo === "function" ? formatDateIndo(event.tanggal) : event.tanggal}</td></tr>
           <tr><td><b>Tempat / Lokasi</b></td><td>: ${event.tempat}</td></tr>
           <tr><td><b>Total Responden</b></td><td>: ${metrics.total_responden} Orang</td></tr>
           <tr><td><b>Skor Rata-rata Kegiatan</b></td><td>: <b>${metrics.avg_bintang_kegiatan} / 5.00 Bintang</b></td></tr>
@@ -231,12 +231,8 @@ window.ExportEngine = {
       docxBadge.classList.remove("hidden");
     }
 
-    // Aktifkan tombol reset HANYA jika DUA-DUANYA sudah diunduh
-    if (this.pdfDownloaded && this.docxDownloaded && resetBtn) {
-      resetBtn.disabled = false;
-      resetBtn.classList.remove("opacity-50", "cursor-not-allowed", "bg-slate-400");
-      resetBtn.classList.add("bg-red-600", "hover:bg-red-700", "text-white", "shadow-lg");
-      resetBtn.innerHTML = `🛡️ Tutup & Arsipkan Kegiatan Ini`;
+    if (typeof window.updateModalGantiStatus === "function") {
+      window.updateModalGantiStatus();
     }
   }
 };
