@@ -6,7 +6,7 @@
  */
 const CONFIG = {
   // URL Web App aktif hasil deploy Google Apps Script
-  GAS_WEB_APP_URL: "https://script.google.com/macros/s/AKfycbwhonIibLi8hc2IDNwamxP7ZO2M936EKibcR7Hw98L9bSYvZr4WYfJYfM3gWjPTc2tF/exec",
+  GAS_WEB_APP_URL: "https://script.google.com/macros/s/AKfycbxDI72umFA9L4WTFoZSC6v61w8mkFkC_0n22dkBWDvipkTP5RKp7nwhS4e318twofln/exec",
   
   // Informasi Aplikasi
   APP_NAME: "Rating Giat Bidang SMP",
