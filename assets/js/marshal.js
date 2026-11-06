@@ -327,31 +327,52 @@ function renderQuestionListUI(type) {
       item.innerHTML = `
         <div class="flex items-center gap-2 flex-1 w-full">
           <span class="w-6 h-6 rounded-lg bg-orange-100 text-orange-700 font-extrabold text-xs flex items-center justify-center flex-shrink-0">${hurufUrut(idx)}</span>
-          <input type="text" class="input-inline-edit flex-1 text-xs px-2.5 py-1.5 border border-orange-400 rounded-lg outline-none focus:ring-1 focus:ring-orange-500 bg-white font-medium" value="${qText}">
-          <button type="button" class="btn-save-inline text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-2.5 py-1.5 rounded-lg transition" title="Simpan">✓</button>
-          <button type="button" class="btn-cancel-inline text-xs font-bold text-slate-500 hover:bg-slate-100 px-2 py-1.5 rounded-lg transition" title="Batal">✕</button>
+          <input type="text" data-type="${type}" data-idx="${idx}" class="input-inline-edit flex-1 text-xs px-2.5 py-1.5 border border-orange-400 rounded-lg outline-none focus:ring-1 focus:ring-orange-500 bg-white font-medium" value="${qText}">
+          <button type="button" class="btn-save-inline text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-2.5 py-1.5 rounded-lg transition cursor-pointer" title="Simpan (✓)">✓</button>
+          <button type="button" class="btn-cancel-inline text-xs font-bold text-slate-500 hover:bg-slate-100 px-2 py-1.5 rounded-lg transition cursor-pointer" title="Batal (✕)">✕</button>
         </div>
       `;
 
       const input = item.querySelector(".input-inline-edit");
+      const btnSave = item.querySelector(".btn-save-inline");
+      const btnCancel = item.querySelector(".btn-cancel-inline");
+
       input.focus();
       input.select();
 
+      let isFinished = false;
+
       const save = () => {
+        if (isFinished) return;
+        isFinished = true;
         const val = input.value.trim();
         if (val) {
           customQuestions[type][idx] = val;
-          renderQuestionListUI(type);
-        } else {
-          showToast("Teks pertanyaan tidak boleh kosong!", "warning", "Perhatian");
         }
+        renderQuestionListUI(type);
       };
 
-      item.querySelector(".btn-save-inline").onclick = save;
-      item.querySelector(".btn-cancel-inline").onclick = () => renderQuestionListUI(type);
+      const cancel = () => {
+        if (isFinished) return;
+        isFinished = true;
+        renderQuestionListUI(type);
+      };
+
+      // Mousedown pada tombol agar tidak terinterupsi event onblur
+      btnSave.onmousedown = (e) => e.preventDefault();
+      btnSave.onclick = save;
+
+      btnCancel.onmousedown = (e) => e.preventDefault();
+      btnCancel.onclick = cancel;
+
+      // Auto-Save 1: Saat klik di luar kotak / kursor berpindah (blur)
+      input.onblur = () => {
+        save();
+      };
+
       input.onkeydown = (e) => {
         if (e.key === "Enter") { e.preventDefault(); save(); }
-        if (e.key === "Escape") { e.preventDefault(); renderQuestionListUI(type); }
+        if (e.key === "Escape") { e.preventDefault(); cancel(); }
       };
     };
 
@@ -483,6 +504,20 @@ function setupQuestionBuilder() {
 }
 
 /**
+ * Auto-Save 2: Menyerap seluruh teks input inline yang masih belum dicentang
+ */
+function autoSaveAllOpenInlineInputs() {
+  document.querySelectorAll(".input-inline-edit").forEach(input => {
+    const type = input.getAttribute("data-type");
+    const idx = parseInt(input.getAttribute("data-idx"), 10);
+    const val = input.value.trim();
+    if (type && !isNaN(idx) && val && customQuestions[type]) {
+      customQuestions[type][idx] = val;
+    }
+  });
+}
+
+/**
  * Event Listeners Dashboard
  */
 function setupEventListeners() {
@@ -494,6 +529,9 @@ function setupEventListeners() {
   if (formCreate) {
     formCreate.onsubmit = async (e) => {
       e.preventDefault();
+
+      // Auto-Save 2: Jika masih ada kotak edit yang terbuka saat tombol submit ditekan, simpan otomatis nilainya
+      autoSaveAllOpenInlineInputs();
 
       const isLokasi = document.getElementById("create-is-lokasi").checked;
       const isCustomMutu = document.getElementById("mode-mutu-custom") && document.getElementById("mode-mutu-custom").checked;
