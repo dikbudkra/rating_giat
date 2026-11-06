@@ -56,6 +56,48 @@ window.ExportEngine = {
 
     let currentY = doc.lastAutoTable.finalY + 6;
 
+    // Bagian Rapor Skor Evaluasi per Aspek Pertanyaan
+    const qStats = dashboardData.question_stats || { mutu: [], tempat: [] };
+    const aspectRows = [];
+
+    if (qStats.mutu && qStats.mutu.length > 0) {
+      qStats.mutu.forEach(m => {
+        const starVal = (parseFloat(m.rata_rata) / 2).toFixed(2);
+        aspectRows.push([m.label, m.pertanyaan, m.rata_rata + " / 10", starVal + " ★"]);
+      });
+    }
+
+    if (metrics.is_lokasi_active && qStats.tempat && qStats.tempat.length > 0) {
+      qStats.tempat.forEach(t => {
+        const starVal = (parseFloat(t.rata_rata) / 2).toFixed(2);
+        aspectRows.push([t.label, t.pertanyaan, t.rata_rata + " / 10", starVal + " ★"]);
+      });
+    }
+
+    if (aspectRows.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(122, 32, 0);
+      doc.text("Rapor Skor Evaluasi per Aspek Indikator", 14, currentY);
+
+      doc.autoTable({
+        startY: currentY + 3,
+        head: [["Poin", "Aspek / Indikator Pertanyaan", "Skor (1-10)", "Konversi Bintang"]],
+        body: aspectRows,
+        theme: "grid",
+        headStyles: { fillColor: [122, 32, 0], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
+        styles: { fontSize: 8, cellPadding: 2 },
+        columnStyles: {
+          0: { cellWidth: 18, halign: "center", fontStyle: "bold" },
+          1: { cellWidth: 105 },
+          2: { cellWidth: 28, halign: "center" },
+          3: { cellWidth: 29, halign: "center", fontStyle: "bold" }
+        }
+      });
+
+      currentY = doc.lastAutoTable.finalY + 6;
+    }
+
     // Bagian Rangkuman Asisten AI Gemini (Jika Ada)
     if (aiSummary && aiSummary.trim() !== "") {
       doc.setFont("helvetica", "bold");
@@ -81,8 +123,8 @@ window.ExportEngine = {
 
     const tableRows = responses.map((r, idx) => [
       idx + 1,
-      r.mode === "ANONYMOUS" ? "(Anonim)" : r.nama,
-      r.mode === "ANONYMOUS" ? "-" : r.sekolah,
+      r.mode === "ANONYMOUS" || r.mode === "RAHASIA" ? "(Anonim)" : r.nama,
+      r.mode === "ANONYMOUS" || r.mode === "RAHASIA" ? "-" : r.sekolah,
       r.bintang_kegiatan + " ★",
       r.saran || "-",
       r.rekomendasi || "-"
@@ -90,7 +132,7 @@ window.ExportEngine = {
 
     doc.autoTable({
       startY: currentY + 3,
-      head: [["No", "Nama", "Asal Sekolah", "Nilai", "Saran & Masukan", "Rekomendasi Topik"]],
+      head: [["No", "Nama", "Asal Instansi / Sekolah", "Nilai", "Saran & Masukan", "Rekomendasi Topik"]],
       body: tableRows,
       theme: "striped",
       headStyles: { fillColor: [196, 67, 0], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
@@ -128,13 +170,45 @@ window.ExportEngine = {
     const responses = dashboardData.responses || [];
 
     // Buat Dokumen Word berbasis HTML Blob resmi (.doc / .docx compatible)
+    const qStats = dashboardData.question_stats || { mutu: [], tempat: [] };
+    let aspectRowsHtml = "";
+
+    if (qStats.mutu && qStats.mutu.length > 0) {
+      qStats.mutu.forEach(m => {
+        const starVal = (parseFloat(m.rata_rata) / 2).toFixed(2);
+        aspectRowsHtml += `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">${m.label}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${m.pertanyaan}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${m.rata_rata} / 10</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">${starVal} ★</td>
+          </tr>
+        `;
+      });
+    }
+
+    if (metrics.is_lokasi_active && qStats.tempat && qStats.tempat.length > 0) {
+      qStats.tempat.forEach(t => {
+        const starVal = (parseFloat(t.rata_rata) / 2).toFixed(2);
+        aspectRowsHtml += `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">${t.label}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${t.pertanyaan}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${t.rata_rata} / 10</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">${starVal} ★</td>
+          </tr>
+        `;
+      });
+    }
+
     let rowsHtml = "";
     responses.forEach((r, idx) => {
+      const isAnon = (r.mode === "ANONYMOUS" || r.mode === "RAHASIA");
       rowsHtml += `
         <tr>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">${r.mode === "ANONYMOUS" ? "<i>(Anonim)</i>" : r.nama}</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">${r.mode === "ANONYMOUS" ? "-" : r.sekolah}</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">${isAnon ? "<i>(Anonim)</i>" : r.nama}</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">${isAnon ? "-" : r.sekolah}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;"><b>${r.bintang_kegiatan} ★</b></td>
           <td style="border: 1px solid #ddd; padding: 6px;">${r.saran || "-"}</td>
           <td style="border: 1px solid #ddd; padding: 6px;">${r.rekomendasi || "-"}</td>
@@ -172,19 +246,35 @@ window.ExportEngine = {
           <tr><td><b>Skor Rata-rata Tempat</b></td><td>: ${metrics.is_lokasi_active ? `<b>${metrics.avg_bintang_tempat} / 5.00 Bintang</b>` : "Tidak Diaktifkan"}</td></tr>
         </table>
 
+        ${aspectRowsHtml ? `
+        <h3>B. Rapor Skor Evaluasi per Aspek Indikator</h3>
+        <table>
+          <thead>
+            <tr>
+              <th width="10%" style="text-align: center;">Poin</th>
+              <th width="50%">Aspek / Indikator Pertanyaan</th>
+              <th width="20%" style="text-align: center;">Skor Rata-rata (1-10)</th>
+              <th width="20%" style="text-align: center;">Konversi Bintang (1-5)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${aspectRowsHtml}
+          </tbody>
+        </table>` : ""}
+
         ${aiSummary ? `
         <div class="ai-box">
           <h4 style="color: #6B21A8; margin-top: 0;">✦ Rangkuman Eksekutif Asisten AI Gemini</h4>
           <p>${aiSummary.replace(/\n/g, "<br/>")}</p>
         </div>` : ""}
 
-        <h3>B. Rekapitulasi Masukan dan Umpan Balik Peserta</h3>
+        <h3>${aspectRowsHtml ? "C" : "B"}. Rekapitulasi Masukan dan Umpan Balik Peserta</h3>
         <table>
           <thead>
             <tr>
               <th width="5%" style="text-align: center;">No</th>
               <th width="20%">Nama</th>
-              <th width="20%">Asal Sekolah</th>
+              <th width="20%">Asal Sekolah / Instansi</th>
               <th width="10%" style="text-align: center;">Nilai</th>
               <th width="25%">Saran & Masukan</th>
               <th width="20%">Rekomendasi Topik</th>

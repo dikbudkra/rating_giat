@@ -161,21 +161,29 @@
             Pilih apakah Anda ingin mencantumkan identitas satuan pendidikan atau mengisi secara rahasia.
           </p>
 
-          <!-- Toggle Mode -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <!-- Toggle 3 Mode Responden -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
             <label class="cursor-pointer">
-              <input type="radio" name="mode_identitas" id="mode-identitas-data" value="DATA" class="peer sr-only" checked>
-              <div class="p-3.5 rounded-xl border-2 border-slate-200 peer-checked:border-orange-500 peer-checked:bg-orange-50/50 transition">
-                <div class="font-bold text-sm text-slate-800">📋 Cantumkan Identitas</div>
-                <div class="text-xs text-slate-500 mt-0.5">Mencatat kehadiran perwakilan sekolah</div>
+              <input type="radio" name="mode_identitas" id="mode-identitas-smp" value="SMP" class="peer sr-only" checked>
+              <div class="p-3 rounded-xl border-2 border-slate-200 peer-checked:border-orange-500 peer-checked:bg-orange-50/50 transition text-center sm:text-left">
+                <div class="font-bold text-xs sm:text-sm text-slate-800">🏫 Guru / Tendik SMP</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Satuan Pendidikan Kab. Karanganyar</div>
               </div>
             </label>
 
             <label class="cursor-pointer">
-              <input type="radio" name="mode_identitas" id="mode-identitas-anon" value="ANONYMOUS" class="peer sr-only">
-              <div class="p-3.5 rounded-xl border-2 border-slate-200 peer-checked:border-orange-500 peer-checked:bg-orange-50/50 transition">
-                <div class="font-bold text-sm text-slate-800">🔒 Anonim (Rahasia)</div>
-                <div class="text-xs text-slate-500 mt-0.5">Nama dan sekolah disamarkan penuh</div>
+              <input type="radio" name="mode_identitas" id="mode-identitas-tamu" value="TAMU" class="peer sr-only">
+              <div class="p-3 rounded-xl border-2 border-slate-200 peer-checked:border-orange-500 peer-checked:bg-orange-50/50 transition text-center sm:text-left">
+                <div class="font-bold text-xs sm:text-sm text-slate-800">🏢 Tamu Undangan</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Dinas Luar / Mitra / Instansi Lain</div>
+              </div>
+            </label>
+
+            <label class="cursor-pointer">
+              <input type="radio" name="mode_identitas" id="mode-identitas-anon" value="RAHASIA" class="peer sr-only">
+              <div class="p-3 rounded-xl border-2 border-slate-200 peer-checked:border-orange-500 peer-checked:bg-orange-50/50 transition text-center sm:text-left">
+                <div class="font-bold text-xs sm:text-sm text-slate-800">🔒 Rahasia (Anonim)</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Identitas disamarkan penuh</div>
               </div>
             </label>
           </div>
@@ -189,14 +197,33 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Asal Satuan Pendidikan (SMP) <span class="text-red-500 font-bold">*</span></label>
-                <input type="text" id="input-sekolah" placeholder="Contoh: SMP Negeri 1 Karanganyar" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition">
+                <label id="label-asal-sekolah" class="block text-xs font-bold text-slate-700 mb-1">Asal Satuan Pendidikan (SMP) <span class="text-red-500 font-bold">*</span></label>
+                <input type="text" id="input-sekolah" list="datalist-master-smp" placeholder="Ketik atau pilih SMP se-Karanganyar..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition" autocomplete="off">
+                <datalist id="datalist-master-smp"></datalist>
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Jabatan / Peran <span class="text-red-500 font-bold">*</span></label>
-                <input type="text" id="input-jabatan" placeholder="Contoh: Guru Matematika / Kepala Sekolah / Operator" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white transition">
+                <input type="text" id="input-jabatan" list="datalist-jabatan" placeholder="Contoh: Guru Matematika / Kepala Sekolah / Operator" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white transition">
+                <datalist id="datalist-jabatan">
+                  <option value="Guru Mata Pelajaran">
+                  <option value="Guru Bimbingan Konseling (BK)">
+                  <option value="Kepala Sekolah">
+                  <option value="Wakil Kepala Sekolah">
+                  <option value="Tenaga Administrasi / Tata Usaha">
+                  <option value="Operator Sekolah">
+                </datalist>
               </div>
             </div>
+          </div>
+
+          <!-- Pesan Khusus Mode Anonim -->
+          <div id="container-identitas-anonim-notice" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1">
+            <div class="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+              <span>🔒</span> Mode Rahasia (Anonim) Aktif
+            </div>
+            <p class="leading-relaxed">
+              Nama lengkap, asal sekolah, dan jabatan Anda tidak akan dicatat. Penilaian dan catatan Anda masuk murni sebagai responden anonim demi menjamin objektivitas evaluasi.
+            </p>
           </div>
         </div>
 

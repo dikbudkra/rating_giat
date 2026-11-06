@@ -32,6 +32,9 @@ async function initApp() {
     
     if (data && data.status === "ACTIVE" && data.event) {
       currentActiveEvent = data.event;
+      if (data.master_smp && Array.isArray(data.master_smp)) {
+        populateMasterSchoolsDatalist(data.master_smp);
+      }
       renderActiveEvent(data.event);
     } else if (fetchError) {
       renderStandbyView("Gagal terhubung ke server atau periksa koneksi internet.");
@@ -39,6 +42,12 @@ async function initApp() {
       renderStandbyView();
     }
   }, remainingTime);
+}
+
+function populateMasterSchoolsDatalist(schools) {
+  const datalist = document.getElementById("datalist-master-smp");
+  if (!datalist || !schools || !schools.length) return;
+  datalist.innerHTML = schools.map(s => `<option value="${s}">`).join("");
 }
 
 /**
@@ -148,20 +157,51 @@ function hurufUrut(idx) {
   return String.fromCharCode(65 + idx); // 0 -> A, 1 -> B, dst.
 }
 
-function renderQuestionBlock(questionText, idx, prefix) {
+/**
+ * Helper pengiriman HTTP dengan retry otomatis hingga 3x jika koneksi internet tidak stabil
+ */
+async function submitWithRetry(url, payload, maxRetries = 3) {
+  let attempt = 0;
+  let lastErr = null;
+  while (attempt < maxRetries) {
+    attempt++;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`Percobaan kirim ke-${attempt} terkendala:`, err);
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 1200));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+function renderQuestionBlock(questionText, idx, prefix, wajibSemuaCatatan) {
   const labelHuruf = hurufUrut(idx);
   const radioName = `nilai_${prefix}_${idx}`;
   const gridId = `grid-${prefix}-${idx}`;
   const catId = `catatan-${prefix}-${idx}`;
+  const badgeId = `badge-${prefix}-${idx}`;
 
   let radioPills = "";
   for (let val = 1; val <= 10; val++) {
     const radioId = `${prefix}-${idx}-${val}`;
     radioPills += `
-      <input type="radio" name="${radioName}" id="${radioId}" value="${val}" class="rating-pill-input sr-only">
+      <input type="radio" name="${radioName}" id="${radioId}" value="${val}" class="rating-pill-input sr-only" data-prefix="${prefix}" data-idx="${idx}" data-val="${val}">
       <label for="${radioId}" class="rating-pill-label">${val}</label>
     `;
   }
+
+  const initialBadge = wajibSemuaCatatan
+    ? `<span id="${badgeId}" class="text-red-500 font-bold text-[11px]">* (Wajib Diisi)</span>`
+    : `<span id="${badgeId}" class="text-slate-500 font-normal text-[11px]">(Wajib jika nilai ≤ 7)</span>`;
 
   return `
     <div class="space-y-3 pt-5 first:pt-0 border-t first:border-t-0 border-slate-100">
@@ -172,10 +212,11 @@ function renderQuestionBlock(questionText, idx, prefix) {
         ${radioPills}
       </div>
       <div class="mt-3">
-        <label for="${catId}" class="block text-xs font-bold text-slate-700 mb-1">
-          Alasan / Catatan Penilaian <span class="text-red-500 font-bold">*</span>
+        <label for="${catId}" class="flex items-center justify-between text-xs font-bold text-slate-700 mb-1">
+          <span>Alasan / Catatan Penilaian</span>
+          ${initialBadge}
         </label>
-        <textarea id="${catId}" rows="3" placeholder="Tuliskan alasan / catatan penilaian Anda (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
+        <textarea id="${catId}" rows="3" placeholder="${wajibSemuaCatatan ? 'Tuliskan alasan / catatan penilaian Anda (wajib diisi)...' : 'Tuliskan alasan / evaluasi Anda (wajib jika nilai 7 ke bawah)...'}" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
       </div>
     </div>
   `;
@@ -183,17 +224,18 @@ function renderQuestionBlock(questionText, idx, prefix) {
 
 function renderDynamicQuestions(event) {
   const { mutu, tempat } = getActivePertanyaan(event);
+  const wajibSemua = (event && event.wajib_semua_catatan === true);
 
   // Render Mutu Kegiatan
   const containerMutu = document.getElementById("container-pertanyaan-mutu");
   if (containerMutu) {
-    containerMutu.innerHTML = mutu.map((q, idx) => renderQuestionBlock(q, idx, "mutu")).join("");
+    containerMutu.innerHTML = mutu.map((q, idx) => renderQuestionBlock(q, idx, "mutu", wajibSemua)).join("");
   }
 
   // Render Tempat Acara (jika aktif)
   const containerTempat = document.getElementById("container-pertanyaan-tempat");
   if (containerTempat && event.is_lokasi_active) {
-    containerTempat.innerHTML = tempat.map((q, idx) => renderQuestionBlock(q, idx, "tempat")).join("");
+    containerTempat.innerHTML = tempat.map((q, idx) => renderQuestionBlock(q, idx, "tempat", wajibSemua)).join("");
   }
 }
 
@@ -202,28 +244,81 @@ function renderDynamicQuestions(event) {
  */
 function setupFormListeners(event) {
   const { mutu, tempat } = getActivePertanyaan(event);
+  const wajibSemua = (event && event.wajib_semua_catatan === true);
 
-  // Toggle Identitas (Data vs Anonymous)
-  const modeData = document.getElementById("mode-identitas-data");
+  // Listener update badge alasan jika nilai rating diklik (≤ 7 wajib, > 7 opsional)
+  if (!wajibSemua) {
+    document.querySelectorAll(".rating-pill-input").forEach(radio => {
+      radio.addEventListener("change", (e) => {
+        const prefix = e.target.getAttribute("data-prefix");
+        const idx = e.target.getAttribute("data-idx");
+        const val = parseInt(e.target.value, 10);
+        const badge = document.getElementById(`badge-${prefix}-${idx}`);
+        const textarea = document.getElementById(`catatan-${prefix}-${idx}`);
+        if (!badge || !textarea) return;
+
+        if (val <= 7) {
+          badge.innerHTML = `<span class="text-red-500 font-bold text-[11px]">* (Wajib diisi untuk nilai ${val})</span>`;
+          textarea.placeholder = `Tuliskan alasan / catatan kendala Anda (wajib diisi untuk nilai ${val})...`;
+        } else {
+          badge.innerHTML = `<span class="text-slate-400 font-normal text-[11px]">(Opsional)</span>`;
+          textarea.placeholder = `Tuliskan catatan apresiasi atau masukan (opsional)...`;
+        }
+      });
+    });
+  }
+
+  // Toggle 3 Mode Identitas (Guru/Tendik SMP, Tamu Undangan, Rahasia)
+  const modeSmp = document.getElementById("mode-identitas-smp");
+  const modeTamu = document.getElementById("mode-identitas-tamu");
   const modeAnon = document.getElementById("mode-identitas-anon");
   const dataFields = document.getElementById("container-identitas-fields");
+  const anonNotice = document.getElementById("container-identitas-anonim-notice");
+  const labelAsalSekolah = document.getElementById("label-asal-sekolah");
+  const inputSekolah = document.getElementById("input-sekolah");
+  const inputNama = document.getElementById("input-nama");
+  const inputJabatan = document.getElementById("input-jabatan");
 
   function updateIdentityMode() {
-    if (modeData.checked) {
-      dataFields.classList.remove("hidden");
-      document.getElementById("input-nama").required = true;
-      document.getElementById("input-sekolah").required = true;
-      document.getElementById("input-jabatan").required = true;
+    if (modeAnon && modeAnon.checked) {
+      if (dataFields) dataFields.classList.add("hidden");
+      if (anonNotice) anonNotice.classList.remove("hidden");
+      if (inputNama) inputNama.required = false;
+      if (inputSekolah) inputSekolah.required = false;
+      if (inputJabatan) inputJabatan.required = false;
+    } else if (modeTamu && modeTamu.checked) {
+      if (dataFields) dataFields.classList.remove("hidden");
+      if (anonNotice) anonNotice.classList.add("hidden");
+      if (labelAsalSekolah) {
+        labelAsalSekolah.innerHTML = `Asal Instansi / Sekolah / Lembaga <span class="text-red-500 font-bold">*</span>`;
+      }
+      if (inputSekolah) {
+        inputSekolah.setAttribute("list", "");
+        inputSekolah.placeholder = "Contoh: Balai Guru Penggerak / SMP Luar Daerah / Mitra...";
+        inputSekolah.required = true;
+      }
+      if (inputNama) inputNama.required = true;
+      if (inputJabatan) inputJabatan.required = true;
     } else {
-      dataFields.classList.add("hidden");
-      document.getElementById("input-nama").required = false;
-      document.getElementById("input-sekolah").required = false;
-      document.getElementById("input-jabatan").required = false;
+      // Default: Guru / Tendik SMP
+      if (dataFields) dataFields.classList.remove("hidden");
+      if (anonNotice) anonNotice.classList.add("hidden");
+      if (labelAsalSekolah) {
+        labelAsalSekolah.innerHTML = `Asal Satuan Pendidikan (SMP) <span class="text-red-500 font-bold">*</span>`;
+      }
+      if (inputSekolah) {
+        inputSekolah.setAttribute("list", "datalist-master-smp");
+        inputSekolah.placeholder = "Ketik atau pilih SMP se-Karanganyar...";
+        inputSekolah.required = true;
+      }
+      if (inputNama) inputNama.required = true;
+      if (inputJabatan) inputJabatan.required = true;
     }
   }
 
-  modeData.addEventListener("change", updateIdentityMode);
-  modeAnon.addEventListener("change", updateIdentityMode);
+  if (modeSmp) modeSmp.addEventListener("change", updateIdentityMode);
+  if (modeTamu) modeTamu.addEventListener("change", updateIdentityMode);
+  if (modeAnon) modeAnon.addEventListener("change", updateIdentityMode);
   updateIdentityMode();
 
   // Submit Handler
@@ -264,8 +359,10 @@ function setupFormListeners(event) {
       }
     };
 
-    // 1. Validasi Identitas (Jika Mode DATA)
-    if (modeData.checked) {
+    // 1. Validasi Identitas (Jika Mode SMP atau TAMU)
+    const selectedMode = (modeAnon && modeAnon.checked) ? "RAHASIA" : (modeTamu && modeTamu.checked ? "TAMU" : "SMP");
+
+    if (selectedMode !== "RAHASIA") {
       const namaEl = document.getElementById("input-nama");
       if (!namaEl.value.trim()) {
         markInvalid(namaEl, "Harap isi Nama Lengkap & Gelar Anda.");
@@ -273,7 +370,8 @@ function setupFormListeners(event) {
       }
       const sekolahEl = document.getElementById("input-sekolah");
       if (!sekolahEl.value.trim()) {
-        markInvalid(sekolahEl, "Harap isi Asal Satuan Pendidikan (SMP) Anda.");
+        const msg = (selectedMode === "TAMU") ? "Harap isi Asal Instansi / Sekolah / Lembaga Anda." : "Harap isi Asal Satuan Pendidikan (SMP) Anda.";
+        markInvalid(sekolahEl, msg);
         return;
       }
       const jabatanEl = document.getElementById("input-jabatan");
@@ -303,12 +401,15 @@ function setupFormListeners(event) {
         markRadioInvalid(radioName, gridId, `Harap pilih nilai (1 - 10) untuk poin ${labelHuruf} (${mutu[i]}).`);
         return;
       }
-      nilaiMutu.push(parseInt(val, 10));
+      const numVal = parseInt(val, 10);
+      nilaiMutu.push(numVal);
 
       const catEl = document.getElementById(catId);
       const catVal = catEl ? catEl.value.trim() : "";
-      if (!catVal) {
-        markInvalid(catEl, `Harap isi alasan / catatan penilaian untuk poin ${labelHuruf}.`);
+      const isCatatanWajib = wajibSemua || (numVal <= 7);
+
+      if (isCatatanWajib && !catVal) {
+        markInvalid(catEl, `Harap isi alasan / catatan untuk poin ${labelHuruf} (wajib diisi karena nilai ${numVal} ≤ 7).`);
         return;
       }
       catatanMutu.push(catVal);
@@ -329,19 +430,22 @@ function setupFormListeners(event) {
           markRadioInvalid(radioName, gridId, `Harap pilih nilai (1 - 10) untuk Fasilitas Tempat poin ${labelHuruf} (${tempat[j]}).`);
           return;
         }
-        nilaiTempat.push(parseInt(val, 10));
+        const numVal = parseInt(val, 10);
+        nilaiTempat.push(numVal);
 
         const catEl = document.getElementById(catId);
         const catVal = catEl ? catEl.value.trim() : "";
-        if (!catVal) {
-          markInvalid(catEl, `Harap isi alasan / catatan fasilitas tempat untuk poin ${labelHuruf}.`);
+        const isCatatanWajib = wajibSemua || (numVal <= 7);
+
+        if (isCatatanWajib && !catVal) {
+          markInvalid(catEl, `Harap isi alasan fasilitas tempat untuk poin ${labelHuruf} (wajib diisi karena nilai ${numVal} ≤ 7).`);
           return;
         }
         catatanTempat.push(catVal);
       }
     }
 
-    // 4. Validasi Masukan & Rekomendasi
+    // 4. Validasi Masukan & Rekomendasi (Wajib)
     const saranEl = document.getElementById("input-saran");
     if (!saranEl.value.trim()) {
       markInvalid(saranEl, "Harap isi Saran & Masukan untuk Panitia / Narasumber.");
@@ -364,23 +468,25 @@ function setupFormListeners(event) {
     // Format catatan penjelasan terstruktur (untuk kompatibilitas laporan)
     let catatanList = [];
     mutu.forEach((q, i) => {
-      catatanList.push(`[${hurufUrut(i)}. ${q}: ${catatanMutu[i]}]`);
+      const c = catatanMutu[i];
+      if (c) catatanList.push(`[${hurufUrut(i)}. ${q}: ${c}]`);
     });
     if (event.is_lokasi_active) {
       tempat.forEach((q, j) => {
-        catatanList.push(`[Tempat ${hurufUrut(j)}. ${q}: ${catatanTempat[j]}]`);
+        const c = catatanTempat[j];
+        if (c) catatanList.push(`[Tempat ${hurufUrut(j)}. ${q}: ${c}]`);
       });
     }
 
-    const fullSaran = [catatanList.join("\n"), saranEl.value.trim()].join("\n\n");
+    const fullSaran = [catatanList.join("\n"), saranEl.value.trim()].filter(Boolean).join("\n\n");
 
     const payload = {
       action: "submitRating",
       id_kegiatan: event.id_kegiatan,
-      mode_identitas: modeData.checked ? "DATA" : "ANONYMOUS",
-      nama: document.getElementById("input-nama").value.trim(),
-      asal_sekolah: document.getElementById("input-sekolah").value.trim(),
-      jabatan: document.getElementById("input-jabatan").value.trim(),
+      mode_identitas: selectedMode,
+      nama: selectedMode === "RAHASIA" ? "(Anonim)" : document.getElementById("input-nama").value.trim(),
+      asal_sekolah: selectedMode === "RAHASIA" ? "(Anonim)" : document.getElementById("input-sekolah").value.trim(),
+      jabatan: selectedMode === "RAHASIA" ? "(Anonim)" : document.getElementById("input-jabatan").value.trim(),
       nilai_mutu: nilaiMutu,
       catatan_mutu: catatanMutu,
       nilai_tempat: nilaiTempat,
@@ -390,11 +496,7 @@ function setupFormListeners(event) {
     };
 
     try {
-      const res = await fetch(CONFIG.GAS_WEB_APP_URL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-      const result = await res.json();
+      const result = await submitWithRetry(CONFIG.GAS_WEB_APP_URL, payload, 3);
       hideLoader();
 
       if (result.status === "success") {
@@ -417,7 +519,7 @@ function setupFormListeners(event) {
     } catch (err) {
       console.error(err);
       hideLoader();
-      showToast("Terjadi kendala jaringan saat mengirim penilaian. Silakan coba lagi.", "error", "Koneksi Bermasalah");
+      showToast("Terjadi kendala jaringan saat mengirim penilaian setelah 3x percobaan. Silakan coba sesaat lagi.", "error", "Koneksi Bermasalah");
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalText;
     }

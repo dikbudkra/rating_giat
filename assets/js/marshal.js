@@ -536,6 +536,8 @@ function setupEventListeners() {
       const isLokasi = document.getElementById("create-is-lokasi").checked;
       const isCustomMutu = document.getElementById("mode-mutu-custom") && document.getElementById("mode-mutu-custom").checked;
       const isCustomTempat = document.getElementById("mode-tempat-custom") && document.getElementById("mode-tempat-custom").checked;
+      const chkWajibSemua = document.getElementById("create-wajib-semua-catatan");
+      const wajibSemuaCatatan = chkWajibSemua ? chkWajibSemua.checked : false;
 
       const finalMutu = isCustomMutu ? customQuestions.mutu : DEFAULT_QUESTIONS.mutu;
       const finalTempat = isLokasi ? (isCustomTempat ? customQuestions.tempat : DEFAULT_QUESTIONS.tempat) : [];
@@ -552,9 +554,11 @@ function setupEventListeners() {
         tanggal: document.getElementById("create-tanggal").value,
         tempat: document.getElementById("create-tempat").value.trim(),
         is_lokasi_active: isLokasi,
+        wajib_semua_catatan: wajibSemuaCatatan,
         pertanyaan: {
           mutu: finalMutu,
-          tempat: finalTempat
+          tempat: finalTempat,
+          wajib_semua_catatan: wajibSemuaCatatan
         }
       };
 

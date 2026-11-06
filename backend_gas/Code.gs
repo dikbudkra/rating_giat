@@ -80,6 +80,10 @@ function doGet(e) {
 
     if (action === "getActiveEvent") {
       result = getActiveEvent();
+    } else if (action === "getLiveDisplayData") {
+      result = getLiveDisplayData();
+    } else if (action === "getMasterSchools") {
+      result = { status: "success", schools: getMasterSchoolsList() };
     } else if (action === "checkLogin") {
       const password = e.parameter.password || "";
       result = checkMarshalPassword(password);
@@ -238,7 +242,9 @@ function normalizePertanyaan(raw, isLokasi) {
   if (isLokasi && tempat.length === 0) tempat = PERTANYAAN_STANDAR.tempat.slice();
   if (!isLokasi) tempat = [];
 
-  return { mutu: mutu, tempat: tempat };
+  const wajibSemuaCatatan = (obj && (obj.wajib_semua_catatan === true || String(obj.wajib_semua_catatan).toLowerCase() === "true"));
+
+  return { mutu: mutu, tempat: tempat, wajib_semua_catatan: wajibSemuaCatatan };
 }
 
 /**
@@ -356,6 +362,50 @@ function buildSaranGabungan(p) {
 }
 
 /**
+ * Mengambil daftar SMP resmi dari Sheet 'Master_SMP'
+ */
+function getMasterSchoolsList() {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName("Master_SMP") || ss.getSheetByName("MASTER_SMP") || ss.getSheetByName("master_smp");
+  if (sheet) {
+    const data = sheet.getDataRange().getValues();
+    const schools = [];
+    if (data.length > 0) {
+      const firstCell = String(data[0][0] || "").toLowerCase();
+      const startRow = (firstCell.includes("nama") || firstCell.includes("sekolah") || firstCell.includes("smp")) ? 1 : 0;
+      for (let i = startRow; i < data.length; i++) {
+        const val = String(data[i][0] || "").trim();
+        if (val && !schools.includes(val)) {
+          schools.push(val);
+        }
+      }
+      if (schools.length > 0) return schools;
+    }
+  }
+
+  // Fallback standar SMP se-Kabupaten Karanganyar jika sheet belum ada / kosong
+  return [
+    "SMPN 1 Karanganyar", "SMPN 2 Karanganyar", "SMPN 3 Karanganyar", "SMPN 4 Karanganyar", "SMPN 5 Karanganyar",
+    "SMPN 1 Tasikmadu", "SMPN 2 Tasikmadu",
+    "SMPN 1 Jaten", "SMPN 2 Jaten",
+    "SMPN 1 Kebakkramat", "SMPN 2 Kebakkramat", "SMPN 3 Kebakkramat",
+    "SMPN 1 Colomadu", "SMPN 2 Colomadu",
+    "SMPN 1 Gondangrejo", "SMPN 2 Gondangrejo", "SMPN 3 Gondangrejo",
+    "SMPN 1 Mojogedang", "SMPN 2 Mojogedang", "SMPN 3 Mojogedang",
+    "SMPN 1 Karangpandan", "SMPN 2 Karangpandan",
+    "SMPN 1 Matesih", "SMPN 2 Matesih",
+    "SMPN 1 Tawangmangu", "SMPN 2 Tawangmangu",
+    "SMPN 1 Ngargoyoso", "SMPN 2 Ngargoyoso",
+    "SMPN 1 Jumantono", "SMPN 2 Jumantono",
+    "SMPN 1 Jumapolo", "SMPN 2 Jumapolo", "SMPN 3 Jumapolo",
+    "SMPN 1 Jatipuro", "SMPN 2 Jatipuro",
+    "SMPN 1 Jatiyoso", "SMPN 2 Jatiyoso",
+    "SMPN 1 Kerjo", "SMPN 2 Kerjo",
+    "SMPN 1 Jenawi", "SMPN 2 Jenawi"
+  ];
+}
+
+/**
  * Mengambil kegiatan yang sedang berstatus 'OPEN'
  */
 function getActiveEvent() {
@@ -376,6 +426,7 @@ function getActiveEvent() {
     const status = String(row[5]).toUpperCase().trim();
     if (status === "OPEN") {
       const isLokasi = row[4] === true || String(row[4]).toLowerCase() === "true";
+      const configPertanyaan = normalizePertanyaan(row[8], isLokasi);
       return {
         status: "ACTIVE",
         event: {
@@ -384,13 +435,86 @@ function getActiveEvent() {
           tanggal: formatGasIndoDate(row[2]),
           tempat: row[3],
           is_lokasi_active: isLokasi,
-          pertanyaan: normalizePertanyaan(row[8], isLokasi)
-        }
+          pertanyaan: configPertanyaan,
+          wajib_semua_catatan: configPertanyaan.wajib_semua_catatan === true
+        },
+        master_smp: getMasterSchoolsList()
       };
     }
   }
 
   return { status: "STANDBY" };
+}
+
+/**
+ * Data khusus Layar Panggung / Proyektor (/live/) - Publik & Cepat
+ */
+function getLiveDisplayData() {
+  const activeEvent = getActiveEvent();
+  if (activeEvent.status !== "ACTIVE") {
+    return { status: "STANDBY" };
+  }
+
+  const ss = getSpreadsheet();
+  const responSheet = ss.getSheetByName("RESPON");
+  const data = responSheet ? responSheet.getDataRange().getValues() : [];
+  const isBaru = isResponLayoutBaru(responSheet);
+  const pertanyaan = activeEvent.event.pertanyaan;
+
+  let count = 0;
+  let totalBintangKeg = 0;
+  let countBintangKeg = 0;
+  let totalBintangTmp = 0;
+  let countBintangTmp = 0;
+  let liveFeedback = [];
+
+  const activeId = activeEvent.event.id_kegiatan;
+
+  for (let i = 1; i < data.length; i++) {
+    const r = data[i];
+    if (String(r[1]) !== String(activeId)) continue;
+    const p = parseResponRow(r, isBaru, pertanyaan);
+    count++;
+
+    const bk = parseFloat(p.bintang_kegiatan);
+    if (!isNaN(bk) && bk > 0) {
+      totalBintangKeg += bk;
+      countBintangKeg++;
+    }
+    const bt = parseFloat(p.bintang_tempat);
+    if (!isNaN(bt) && bt > 0) {
+      totalBintangTmp += bt;
+      countBintangTmp++;
+    }
+
+    if (p.saran && p.saran.length >= 4) {
+      liveFeedback.push({
+        nama: p.mode === "ANONYMOUS" || p.mode === "RAHASIA" ? "Peserta" : (p.nama ? p.nama.split(" ")[0] : "Peserta"),
+        sekolah: p.mode === "ANONYMOUS" || p.mode === "RAHASIA" ? "" : (p.sekolah || ""),
+        text: p.saran
+      });
+    }
+  }
+
+  const avgKegiatan = countBintangKeg > 0 ? (totalBintangKeg / countBintangKeg).toFixed(2) : "0.00";
+  const avgTempat = countBintangTmp > 0 ? (totalBintangTmp / countBintangTmp).toFixed(2) : "0.00";
+
+  return {
+    status: "ACTIVE",
+    event: {
+      id_kegiatan: activeEvent.event.id_kegiatan,
+      nama_kegiatan: activeEvent.event.nama_kegiatan,
+      tanggal: activeEvent.event.tanggal,
+      tempat: activeEvent.event.tempat,
+      is_lokasi_active: activeEvent.event.is_lokasi_active
+    },
+    metrics: {
+      total_responden: count,
+      avg_bintang_kegiatan: avgKegiatan,
+      avg_bintang_tempat: avgTempat
+    },
+    ticker_feedback: liveFeedback.slice(-15).reverse()
+  };
 }
 
 /**
@@ -525,6 +649,7 @@ function handleOpenEvent(params) {
   const newId = "GIAT-" + timeStr;
 
   const isLokasi = params.is_lokasi_active === true || params.is_lokasi_active === "true";
+  const wajibSemuaCatatan = params.wajib_semua_catatan === true || params.wajib_semua_catatan === "true";
 
   // Validasi daftar pertanyaan (standar / custom)
   const rawP = params.pertanyaan || {};
@@ -537,7 +662,7 @@ function handleOpenEvent(params) {
   if (isLokasi && rawTempat.length > MAX_PERTANYAAN_TEMPAT) {
     return { status: "error", message: "Pertanyaan Penilaian Tempat Acara maksimal " + MAX_PERTANYAAN_TEMPAT + "." };
   }
-  const pertanyaan = normalizePertanyaan({ mutu: rawMutu, tempat: rawTempat }, isLokasi);
+  const pertanyaan = normalizePertanyaan({ mutu: rawMutu, tempat: rawTempat, wajib_semua_catatan: wajibSemuaCatatan }, isLokasi);
 
   giatSheet.appendRow([
     newId,
@@ -615,8 +740,10 @@ function handleSubmitRating(params) {
       if (isNaN(v) || v < 1 || v > 10) {
         return { error: "Nilai " + namaBagian + " poin " + hurufUrut(i) + " wajib dipilih (1 - 10)." };
       }
-      if (!c) {
-        return { error: "Alasan / catatan " + namaBagian + " poin " + hurufUrut(i) + " wajib diisi." };
+      // Logika catatan: Wajib jika setting wajib_semua_catatan aktif ATAU nilai <= 7
+      const wajibSemua = (pertanyaan.wajib_semua_catatan === true);
+      if ((wajibSemua || v <= 7) && !c) {
+        return { error: "Alasan / catatan " + namaBagian + " poin " + hurufUrut(i) + " wajib diisi untuk nilai " + v + " (nilai 7 ke bawah wajib menyertakan alasan)." };
       }
       hasil.push({ nilai: v, catatan: c.substring(0, 2000) });
     }
@@ -645,7 +772,8 @@ function handleSubmitRating(params) {
     bintangTempat = (rataTempat / 2).toFixed(2);
   }
 
-  const isAnon = params.mode_identitas === "ANONYMOUS";
+  const mode = String(params.mode_identitas || "SMP").toUpperCase();
+  const isAnon = (mode === "ANONYMOUS" || mode === "RAHASIA");
   const nama = isAnon ? "(Anonim)" : (params.nama || "-");
   const sekolah = isAnon ? "(Anonim)" : (params.asal_sekolah || "-");
   const jabatan = isAnon ? "(Anonim)" : (params.jabatan || "-");
@@ -654,7 +782,7 @@ function handleSubmitRating(params) {
   row[RCOL.ID] = idRespon;
   row[RCOL.ID_GIAT] = params.id_kegiatan;
   row[RCOL.TS] = now;
-  row[RCOL.MODE] = params.mode_identitas;
+  row[RCOL.MODE] = mode;
   row[RCOL.NAMA] = nama;
   row[RCOL.SEKOLAH] = sekolah;
   row[RCOL.JABATAN] = jabatan;

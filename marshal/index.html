@@ -68,6 +68,9 @@
         <span id="badge-status-kegiatan" class="px-3 py-1 bg-white/20 text-white text-xs font-bold rounded-full">
           STATUS: MEMUAT...
         </span>
+        <a href="../live/" target="_blank" class="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-black px-3 py-1.5 rounded-full shadow-xs transition" title="Buka Layar Panggung / Proyektor">
+          <span>🖥️</span> Buka Layar Panggung
+        </a>
         <a href="../" target="_blank" class="hidden sm:inline-flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/20 transition">
           <span>↗</span> Lihat Web
         </a>
@@ -213,6 +216,19 @@
             </div>
           </div>
 
+          <!-- ==============================================
+               PENGATURAN INSTRUKSI PIMPINAN: CATATAN
+               ============================================== -->
+          <div class="p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" id="create-wajib-semua-catatan" class="mt-0.5 w-4 h-4 text-orange-600 rounded border-amber-300 focus:ring-orange-500 cursor-pointer">
+              <div class="flex-1">
+                <span class="block text-xs font-bold text-slate-800">Wajibkan Catatan untuk Semua Nilai (Instruksi Pimpinan)</span>
+                <span class="block text-[11px] text-slate-500 mt-0.5">Jika dicentang, seluruh responden wajib mengisi alasan/catatan untuk setiap pertanyaan tanpa terkecuali (default: hanya wajib jika nilai ≤ 7).</span>
+              </div>
+            </label>
+          </div>
+
           <div class="pt-2">
             <button type="submit" id="btn-submit-create-event" class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-extrabold text-sm shadow-md transition">
               🚀 Buka Sesi Penilaian Sekarang
@@ -237,7 +253,10 @@
           <p id="dash-event-meta" class="text-xs sm:text-sm text-slate-500 font-medium mt-1"></p>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <a href="../live/" target="_blank" class="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition">
+            <span>🖥️</span> Layar Panggung
+          </a>
           <button onclick="document.getElementById('modal-qr').classList.remove('hidden')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow transition">
             <span>📱</span> Tampilkan Barcode Proyektor
           </button>
