@@ -487,6 +487,23 @@
       renderTickerFeedback(data.ticker_feedback);
     }
 
+    // Filter sensor kata sensitif & kasar untuk perlindungan panggung resmi
+    const SENSITIVE_WORDS = [
+      "anjing", "babi", "bangsat", "bajingan", "kontol", "memek", "pantek", "itil", "jembut",
+      "goblok", "tolol", "idiot", "asu", "tai", "kampret", "setan", "iblis", "jancok", "dancok",
+      "perek", "lonte", "bego", "sialan", "brengsek"
+    ];
+
+    function sanitizeStageFeedback(rawText) {
+      if (!rawText) return "";
+      let clean = rawText.replace(/\n+/g, " ").trim();
+      SENSITIVE_WORDS.forEach(badWord => {
+        const regex = new RegExp(`\\b${badWord}\\b`, "gi");
+        clean = clean.replace(regex, (match) => "*".repeat(match.length));
+      });
+      return clean;
+    }
+
     // Render running ticker suara peserta
     function renderTickerFeedback(feedbacks) {
       const tickerContainer = document.getElementById("ticker-container");
@@ -499,7 +516,7 @@
 
       const itemsHTML = feedbacks.map(item => {
         const sender = item.sekolah ? `${item.nama} (${item.sekolah})` : item.nama;
-        const text = item.text.replace(/\n+/g, " ");
+        const text = sanitizeStageFeedback(item.text);
         return `
           <div class="inline-flex items-center gap-2">
             <span class="text-amber-400 font-bold">${sender}:</span>

@@ -488,10 +488,12 @@ function getLiveDisplayData() {
     }
 
     if (p.saran && p.saran.length >= 4) {
+      let cleanText = String(p.saran).replace(/[\r\n]+/g, " ").trim();
+      if (cleanText.length > 140) cleanText = cleanText.substring(0, 137) + "...";
       liveFeedback.push({
         nama: p.mode === "ANONYMOUS" || p.mode === "RAHASIA" ? "Peserta" : (p.nama ? p.nama.split(" ")[0] : "Peserta"),
         sekolah: p.mode === "ANONYMOUS" || p.mode === "RAHASIA" ? "" : (p.sekolah || ""),
-        text: p.saran
+        text: cleanText
       });
     }
   }

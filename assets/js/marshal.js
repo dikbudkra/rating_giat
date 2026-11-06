@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function initMarshal() {
   const splashScreen = document.getElementById("splash-screen");
 
-  // Animasi Splash Screen selama tepat 4 detik (4000 ms)
+  // Animasi Splash Screen Dinamis & Cepat
   setTimeout(() => {
     if (splashScreen) splashScreen.classList.add("fade-out");
 
@@ -69,7 +69,7 @@ function initMarshal() {
       startIdleAutoLogout();
       loadDashboardData();
     }
-  }, 4000);
+  }, 800);
 
   setupEventListeners();
 }
@@ -592,10 +592,36 @@ function setupEventListeners() {
     };
   }
 
+  // Helper memastikan Rangkuman Eksekutif Gemini AI otomatis dibuat sebelum ekspor jika belum ada
+  async function ensureAiSummaryBeforeExport() {
+    if (!latestAiSummary && currentDashboardData && currentDashboardData.metrics && currentDashboardData.metrics.total_responden > 0) {
+      try {
+        showLoader("Menyusun Rangkuman Eksekutif resmi via Gemini AI...");
+        const res = await fetch(CONFIG.GAS_WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "askGemini",
+            password: marshalPassword,
+            question: "Buatkan ringkasan eksekutif resmi 1-2 paragraf padat mengenai capaian evaluasi kegiatan ini, poin terkuat, dan aspek yang perlu ditingkatkan."
+          })
+        });
+        const result = await res.json();
+        if (result.status === "success" && result.answer) {
+          latestAiSummary = result.answer;
+        }
+      } catch (e) {
+        console.warn("Gagal auto-generate Gemini AI summary:", e);
+      } finally {
+        hideLoader();
+      }
+    }
+  }
+
   // Tombol Export
   const btnPdf = document.getElementById("btn-export-pdf");
   if (btnPdf) {
-    btnPdf.onclick = () => {
+    btnPdf.onclick = async () => {
+      await ensureAiSummaryBeforeExport();
       showToast("Sedang menyiapkan berkas laporan PDF...", "info", "Mengekspor");
       ExportEngine.downloadPDF(currentDashboardData, latestAiSummary);
     };
@@ -603,7 +629,8 @@ function setupEventListeners() {
 
   const btnDocx = document.getElementById("btn-export-docx");
   if (btnDocx) {
-    btnDocx.onclick = () => {
+    btnDocx.onclick = async () => {
+      await ensureAiSummaryBeforeExport();
       showToast("Sedang menyiapkan berkas laporan DOCX...", "info", "Mengekspor");
       ExportEngine.downloadDOCX(currentDashboardData, latestAiSummary);
     };
@@ -624,7 +651,8 @@ function setupEventListeners() {
   // Tombol Unduh di dalam Modal Ganti Kegiatan
   const btnModalPdf = document.getElementById("btn-modal-unduh-pdf");
   if (btnModalPdf) {
-    btnModalPdf.onclick = () => {
+    btnModalPdf.onclick = async () => {
+      await ensureAiSummaryBeforeExport();
       showToast("Sedang menyiapkan berkas laporan PDF...", "info", "Mengekspor");
       ExportEngine.downloadPDF(currentDashboardData, latestAiSummary);
     };
@@ -632,7 +660,8 @@ function setupEventListeners() {
 
   const btnModalDocx = document.getElementById("btn-modal-unduh-docx");
   if (btnModalDocx) {
-    btnModalDocx.onclick = () => {
+    btnModalDocx.onclick = async () => {
+      await ensureAiSummaryBeforeExport();
       showToast("Sedang menyiapkan berkas laporan DOCX...", "info", "Mengekspor");
       ExportEngine.downloadDOCX(currentDashboardData, latestAiSummary);
     };
@@ -1136,6 +1165,24 @@ window.updateModalGantiStatus = function() {
   const step2 = document.getElementById("container-langkah-2");
   const btnSubmit = document.getElementById("btn-confirm-reset-submit");
 
+  const totalRespon = (currentDashboardData && currentDashboardData.metrics) ? (parseInt(currentDashboardData.metrics.total_responden, 10) || 0) : 0;
+
+  // Jika responden masih 0 (nol), otomatis buka Langkah 2 tanpa paksaan unduh berkas kosong
+  if (totalRespon === 0) {
+    if (step2) {
+      step2.classList.remove("opacity-50", "pointer-events-none");
+      step2.classList.add("bg-white", "shadow-sm");
+    }
+    if (lockNote) {
+      lockNote.innerHTML = "<span class='text-amber-600 font-bold'>ℹ️ Kegiatan belum memiliki responden (0). Anda dapat langsung mereset/mengganti kegiatan tanpa mengunduh berkas arsip.</span>";
+    }
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer";
+    }
+    return;
+  }
+
   if (ExportEngine.pdfDownloaded && badgePdf) {
     badgePdf.innerText = "✓ Terunduh";
     badgePdf.className = "bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md";
@@ -1165,7 +1212,10 @@ window.updateModalGantiStatus = function() {
  * Konfirmasi Ganti Kegiatan & Arsip Data
  */
 window.handleConfirmGantiSubmit = async function() {
-  if (!ExportEngine.pdfDownloaded || !ExportEngine.docxDownloaded) {
+  const totalRespon = (currentDashboardData && currentDashboardData.metrics) ? (parseInt(currentDashboardData.metrics.total_responden, 10) || 0) : 0;
+
+  // Hanya wajib unduh berkas jika ada responden (> 0)
+  if (totalRespon > 0 && (!ExportEngine.pdfDownloaded || !ExportEngine.docxDownloaded)) {
     showToast("Wajib mengunduh kedua berkas arsip (PDF dan DOCX) terlebih dahulu!", "warning", "Langkah 1 Belum Lengkap");
     return;
   }

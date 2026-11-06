@@ -7,10 +7,12 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 let currentActiveEvent = null;
+let masterSchoolsList = [];
+let logoTapCount = 0;
+let lastLogoTapTime = 0;
 
 async function initApp() {
   const splashScreen = document.getElementById("splash-screen");
-  const startTime = Date.now();
   let data = null;
   let fetchError = null;
 
@@ -23,31 +25,119 @@ async function initApp() {
     fetchError = error;
   }
 
-  // Waktu tunggu animasi logo tepat 4 detik (4000 ms)
-  const elapsedTime = Date.now() - startTime;
-  const remainingTime = Math.max(0, 4000 - elapsedTime);
+  // Dinamis Murni: Begitu data server siap, langsung buka tampilan seketika
+  if (splashScreen) {
+    splashScreen.classList.add("fade-out");
+  }
 
-  setTimeout(() => {
-    if (splashScreen) splashScreen.classList.add("fade-out");
-    
-    if (data && data.status === "ACTIVE" && data.event) {
-      currentActiveEvent = data.event;
-      if (data.master_smp && Array.isArray(data.master_smp)) {
-        populateMasterSchoolsDatalist(data.master_smp);
-      }
-      renderActiveEvent(data.event);
-    } else if (fetchError) {
-      renderStandbyView("Gagal terhubung ke server atau periksa koneksi internet.");
-    } else {
-      renderStandbyView();
+  if (data && data.status === "ACTIVE" && data.event) {
+    currentActiveEvent = data.event;
+    if (data.master_smp && Array.isArray(data.master_smp)) {
+      masterSchoolsList = data.master_smp;
+      setupSearchableSchoolSelect(data.master_smp);
     }
-  }, remainingTime);
+    renderActiveEvent(data.event);
+  } else if (fetchError) {
+    renderStandbyView("Gagal terhubung ke server atau periksa koneksi internet.");
+  } else {
+    renderStandbyView();
+  }
+
+  setupSecretTestingReset();
 }
 
-function populateMasterSchoolsDatalist(schools) {
-  const datalist = document.getElementById("datalist-master-smp");
-  if (!datalist || !schools || !schools.length) return;
-  datalist.innerHTML = schools.map(s => `<option value="${s}">`).join("");
+/**
+ * Komponen Searchable Select untuk Asal Satuan Pendidikan (SMP)
+ */
+function setupSearchableSchoolSelect(schools) {
+  const inputSekolah = document.getElementById("input-sekolah");
+  const dropdown = document.getElementById("dropdown-sekolah-container");
+  const searchInput = document.getElementById("search-sekolah-input");
+  const listOptions = document.getElementById("list-sekolah-options");
+  if (!inputSekolah || !dropdown || !listOptions) return;
+
+  function renderOptions(filteredList) {
+    if (!filteredList.length) {
+      listOptions.innerHTML = `<div class="p-3 text-center text-slate-400 italic">Sekolah tidak ditemukan</div>`;
+      return;
+    }
+    listOptions.innerHTML = filteredList.map(s => `
+      <div class="school-option p-2.5 rounded-xl hover:bg-orange-50 hover:text-orange-700 cursor-pointer font-medium transition text-slate-700 flex items-center justify-between" data-value="${s}">
+        <span>${s}</span>
+        <span class="text-[11px] text-orange-500 font-bold">Pilih ➔</span>
+      </div>
+    `).join("");
+
+    listOptions.querySelectorAll(".school-option").forEach(opt => {
+      opt.addEventListener("click", () => {
+        const val = opt.getAttribute("data-value");
+        inputSekolah.value = val;
+        inputSekolah.classList.remove("border-red-500", "ring-2", "ring-red-200");
+        dropdown.classList.add("hidden");
+      });
+    });
+  }
+
+  renderOptions(schools);
+
+  // Filter pencarian instan
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const filtered = schools.filter(s => s.toLowerCase().includes(q));
+      renderOptions(filtered);
+    });
+  }
+
+  // Klik input untuk membuka dropdown (hanya berlaku pada mode SMP)
+  inputSekolah.addEventListener("click", (e) => {
+    const modeSmp = document.getElementById("mode-identitas-smp");
+    if (modeSmp && modeSmp.checked) {
+      e.stopPropagation();
+      dropdown.classList.toggle("hidden");
+      if (!dropdown.classList.contains("hidden") && searchInput) {
+        searchInput.value = "";
+        renderOptions(schools);
+        setTimeout(() => searchInput.focus(), 60);
+      }
+    }
+  });
+
+  // Tutup dropdown jika klik di luar
+  document.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target) && e.target !== inputSekolah) {
+      dropdown.classList.add("hidden");
+    }
+  });
+}
+
+/**
+ * Trik Rahasia Uji Coba Panitia: Tap logo Karanganyar 5x untuk reset kunci form di HP
+ */
+function setupSecretTestingReset() {
+  const trigger = document.getElementById("brand-logo-trigger");
+  if (!trigger) return;
+
+  trigger.onclick = () => {
+    const now = Date.now();
+    if (now - lastLogoTapTime > 3000) {
+      logoTapCount = 0;
+    }
+    lastLogoTapTime = now;
+    logoTapCount++;
+
+    if (logoTapCount >= 5) {
+      logoTapCount = 0;
+      if (currentActiveEvent) {
+        const localKey = `rating_giat_submitted_${currentActiveEvent.id_kegiatan}`;
+        localStorage.removeItem(localKey);
+        showToast("🔓 Mode Pengujian Panitia Aktif: Kunci form di perangkat ini berhasil dibuka kembali!", "success", "Reset Uji Coba Berhasil");
+        renderActiveEvent(currentActiveEvent);
+      } else {
+        showToast("Belum ada sesi kegiatan aktif untuk direset.", "info", "Uji Coba");
+      }
+    }
+  };
 }
 
 /**
@@ -268,7 +358,7 @@ function setupFormListeners(event) {
     });
   }
 
-  // Toggle 3 Mode Identitas (Guru/Tendik SMP, Tamu Undangan, Rahasia)
+  // Toggle 3 Mode Identitas (SMP, Tamu Undangan, Rahasia)
   const modeSmp = document.getElementById("mode-identitas-smp");
   const modeTamu = document.getElementById("mode-identitas-tamu");
   const modeAnon = document.getElementById("mode-identitas-anon");
@@ -276,10 +366,14 @@ function setupFormListeners(event) {
   const anonNotice = document.getElementById("container-identitas-anonim-notice");
   const labelAsalSekolah = document.getElementById("label-asal-sekolah");
   const inputSekolah = document.getElementById("input-sekolah");
+  const btnToggleDropdown = document.getElementById("btn-toggle-sekolah-dropdown");
+  const dropdownSekolah = document.getElementById("dropdown-sekolah-container");
   const inputNama = document.getElementById("input-nama");
   const inputJabatan = document.getElementById("input-jabatan");
 
   function updateIdentityMode() {
+    if (dropdownSekolah) dropdownSekolah.classList.add("hidden");
+
     if (modeAnon && modeAnon.checked) {
       if (dataFields) dataFields.classList.add("hidden");
       if (anonNotice) anonNotice.classList.remove("hidden");
@@ -293,24 +387,30 @@ function setupFormListeners(event) {
         labelAsalSekolah.innerHTML = `Asal Instansi / Sekolah / Lembaga <span class="text-red-500 font-bold">*</span>`;
       }
       if (inputSekolah) {
-        inputSekolah.setAttribute("list", "");
+        inputSekolah.readOnly = false;
+        inputSekolah.value = "";
         inputSekolah.placeholder = "Contoh: Balai Guru Penggerak / SMP Luar Daerah / Mitra...";
+        inputSekolah.classList.remove("cursor-pointer");
         inputSekolah.required = true;
       }
+      if (btnToggleDropdown) btnToggleDropdown.classList.add("hidden");
       if (inputNama) inputNama.required = true;
       if (inputJabatan) inputJabatan.required = true;
     } else {
-      // Default: SMP
+      // Default: SMP (Searchable Select Ketat)
       if (dataFields) dataFields.classList.remove("hidden");
       if (anonNotice) anonNotice.classList.add("hidden");
       if (labelAsalSekolah) {
         labelAsalSekolah.innerHTML = `Asal Satuan Pendidikan (SMP) <span class="text-red-500 font-bold">*</span>`;
       }
       if (inputSekolah) {
-        inputSekolah.setAttribute("list", "datalist-master-smp");
-        inputSekolah.placeholder = "Ketik atau pilih SMP se-Karanganyar...";
+        inputSekolah.readOnly = true;
+        inputSekolah.value = "";
+        inputSekolah.placeholder = "Pilih SMP se-Karanganyar...";
+        inputSekolah.classList.add("cursor-pointer");
         inputSekolah.required = true;
       }
+      if (btnToggleDropdown) btnToggleDropdown.classList.remove("hidden");
       if (inputNama) inputNama.required = true;
       if (inputJabatan) inputJabatan.required = true;
     }
@@ -369,11 +469,24 @@ function setupFormListeners(event) {
         return;
       }
       const sekolahEl = document.getElementById("input-sekolah");
-      if (!sekolahEl.value.trim()) {
-        const msg = (selectedMode === "TAMU") ? "Harap isi Asal Instansi / Sekolah / Lembaga Anda." : "Harap isi Asal Satuan Pendidikan (SMP) Anda.";
+      const sekolahVal = sekolahEl.value.trim();
+      if (!sekolahVal) {
+        const msg = (selectedMode === "TAMU") ? "Harap isi Asal Instansi / Sekolah / Lembaga Anda." : "Harap pilih Asal Satuan Pendidikan (SMP) Anda.";
         markInvalid(sekolahEl, msg);
+        if (selectedMode === "SMP" && dropdownSekolah) dropdownSekolah.classList.remove("hidden");
         return;
       }
+
+      // Validasi Ketat Khusus Mode SMP (Wajib terdaftar di Master_SMP)
+      if (selectedMode === "SMP" && masterSchoolsList && masterSchoolsList.length > 0) {
+        const isValidMaster = masterSchoolsList.some(s => s.toLowerCase() === sekolahVal.toLowerCase());
+        if (!isValidMaster) {
+          markInvalid(sekolahEl, "Harap pilih sekolah resmi dari daftar yang tersedia!");
+          if (dropdownSekolah) dropdownSekolah.classList.remove("hidden");
+          return;
+        }
+      }
+
       const jabatanEl = document.getElementById("input-jabatan");
       if (!jabatanEl.value.trim()) {
         markInvalid(jabatanEl, "Harap isi Jabatan / Peran Anda.");
