@@ -113,13 +113,101 @@
             </div>
           </div>
 
-          <!-- Toggle Penilaian Tempat Acara -->
-          <div class="p-4 rounded-xl bg-orange-50/60 border border-orange-200 flex items-start gap-3">
-            <input type="checkbox" id="create-is-lokasi" class="mt-1 w-4 h-4 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer">
-            <label for="create-is-lokasi" class="cursor-pointer">
-              <span class="block text-xs font-extrabold text-orange-900">Aktifkan Penilaian Tempat Acara (Fasilitas & Pelayanan Gedung)</span>
-              <span class="block text-[11px] text-orange-700 mt-0.5">Centang jika kegiatan diadakan di hotel/gedung sewa dan membutuhkan evaluasi vendor/fasilitas fisik terpisah.</span>
-            </label>
+          <!-- ==============================================
+               PENGATURAN PERTANYAAN PENILAIAN MUTU KEGIATAN
+               ============================================== -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="block text-xs font-black text-slate-800 uppercase tracking-wide">
+                  Penilaian Mutu Kegiatan
+                </label>
+                <p class="text-[11px] text-slate-500">Maksimal 10 pertanyaan (skala nilai 1-10 & catatan)</p>
+              </div>
+              <span id="badge-count-mutu" class="text-[11px] font-extrabold text-orange-700 bg-orange-100 px-2.5 py-0.5 rounded-full">4 / 10 Pertanyaan</span>
+            </div>
+
+            <!-- Radio Pilihan: Standar vs Custom -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-orange-50/50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/60 transition">
+                <input type="radio" name="mode_pertanyaan_mutu" id="mode-mutu-standar" value="standar" checked class="text-orange-600 focus:ring-orange-500">
+                <span class="text-xs font-bold text-slate-700">Pertanyaan Standar (4)</span>
+              </label>
+              <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-orange-50/50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/60 transition">
+                <input type="radio" name="mode_pertanyaan_mutu" id="mode-mutu-custom" value="custom" class="text-orange-600 focus:ring-orange-500">
+                <span class="text-xs font-bold text-slate-700">Kustomisasi Pertanyaan</span>
+              </label>
+            </div>
+
+            <!-- Container Kustomisasi Mutu (Hidden jika standar) -->
+            <div id="container-custom-mutu" class="hidden space-y-2.5 pt-2 border-t border-slate-200">
+              <div id="list-pertanyaan-mutu" class="space-y-2">
+                <!-- Di-render oleh JS -->
+              </div>
+
+              <div class="flex items-center justify-between pt-1">
+                <button type="button" id="btn-tambah-mutu" class="text-xs font-bold text-orange-600 hover:text-orange-700 hover:bg-orange-100/70 bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                  <span>＋</span> Tambah Pertanyaan
+                </button>
+                <button type="button" id="btn-reset-mutu" class="text-xs font-semibold text-slate-500 hover:text-slate-700 underline transition">
+                  ↺ Pulihkan ke Standar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==============================================
+               TOGGLE & PENGATURAN TEMPAT ACARA
+               ============================================== -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3">
+            <div class="flex items-start gap-3">
+              <input type="checkbox" id="create-is-lokasi" class="mt-1 w-4 h-4 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer">
+              <label for="create-is-lokasi" class="cursor-pointer flex-1">
+                <span class="block text-xs font-extrabold text-orange-900">Aktifkan Penilaian Tempat Acara (Fasilitas & Pelayanan Gedung)</span>
+                <span class="block text-[11px] text-orange-700 mt-0.5">Centang jika kegiatan diadakan di hotel/gedung sewa dan membutuhkan evaluasi vendor/fasilitas fisik terpisah.</span>
+              </label>
+            </div>
+
+            <!-- Pengaturan Pertanyaan Tempat (Tampil hanya jika create-is-lokasi dicentang) -->
+            <div id="box-pengaturan-tempat" class="hidden pt-3 border-t border-orange-200/80 space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-xs font-black text-slate-800 uppercase tracking-wide">
+                    Pertanyaan Tempat Acara
+                  </label>
+                  <p class="text-[11px] text-slate-500">Maksimal 5 pertanyaan evaluasi tempat</p>
+                </div>
+                <span id="badge-count-tempat" class="text-[11px] font-extrabold text-orange-700 bg-orange-100 px-2.5 py-0.5 rounded-full">2 / 5 Pertanyaan</span>
+              </div>
+
+              <!-- Radio Pilihan: Standar vs Custom -->
+              <div class="grid grid-cols-2 gap-2">
+                <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-orange-50/50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/60 transition">
+                  <input type="radio" name="mode_pertanyaan_tempat" id="mode-tempat-standar" value="standar" checked class="text-orange-600 focus:ring-orange-500">
+                  <span class="text-xs font-bold text-slate-700">Pertanyaan Standar (2)</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-orange-50/50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/60 transition">
+                  <input type="radio" name="mode_pertanyaan_tempat" id="mode-tempat-custom" value="custom" class="text-orange-600 focus:ring-orange-500">
+                  <span class="text-xs font-bold text-slate-700">Kustomisasi Pertanyaan</span>
+                </label>
+              </div>
+
+              <!-- Container Kustomisasi Tempat (Hidden jika standar) -->
+              <div id="container-custom-tempat" class="hidden space-y-2.5 pt-2 border-t border-orange-200">
+                <div id="list-pertanyaan-tempat" class="space-y-2">
+                  <!-- Di-render oleh JS -->
+                </div>
+
+                <div class="flex items-center justify-between pt-1">
+                  <button type="button" id="btn-tambah-tempat" class="text-xs font-bold text-orange-600 hover:text-orange-700 hover:bg-orange-100/70 bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                    <span>＋</span> Tambah Pertanyaan
+                  </button>
+                  <button type="button" id="btn-reset-tempat" class="text-xs font-semibold text-slate-500 hover:text-slate-700 underline transition">
+                    ↺ Pulihkan ke Standar
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="pt-2">

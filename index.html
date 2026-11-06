@@ -216,107 +216,8 @@
             </span>
           </div>
 
-          <!-- Aspek A: Narasumber -->
-          <div>
-            <label class="block text-sm font-bold text-slate-800 mb-2.5">
-              A. Kualitas Narasumber / Fasilitator <span class="text-red-500 font-bold">*</span>
-            </label>
-            <div id="grid-narasumber" class="rating-pills-grid transition">
-              <!-- Baris 1: 1-5 -->
-              <input type="radio" name="nilai_narasumber" id="a-1" value="1" class="rating-pill-input sr-only"><label for="a-1" class="rating-pill-label">1</label>
-              <input type="radio" name="nilai_narasumber" id="a-2" value="2" class="rating-pill-input sr-only"><label for="a-2" class="rating-pill-label">2</label>
-              <input type="radio" name="nilai_narasumber" id="a-3" value="3" class="rating-pill-input sr-only"><label for="a-3" class="rating-pill-label">3</label>
-              <input type="radio" name="nilai_narasumber" id="a-4" value="4" class="rating-pill-input sr-only"><label for="a-4" class="rating-pill-label">4</label>
-              <input type="radio" name="nilai_narasumber" id="a-5" value="5" class="rating-pill-input sr-only"><label for="a-5" class="rating-pill-label">5</label>
-              <!-- Baris 2: 6-10 -->
-              <input type="radio" name="nilai_narasumber" id="a-6" value="6" class="rating-pill-input sr-only"><label for="a-6" class="rating-pill-label">6</label>
-              <input type="radio" name="nilai_narasumber" id="a-7" value="7" class="rating-pill-input sr-only"><label for="a-7" class="rating-pill-label">7</label>
-              <input type="radio" name="nilai_narasumber" id="a-8" value="8" class="rating-pill-input sr-only"><label for="a-8" class="rating-pill-label">8</label>
-              <input type="radio" name="nilai_narasumber" id="a-9" value="9" class="rating-pill-input sr-only"><label for="a-9" class="rating-pill-label">9</label>
-              <input type="radio" name="nilai_narasumber" id="a-10" value="10" class="rating-pill-input sr-only"><label for="a-10" class="rating-pill-label">10</label>
-            </div>
-            <div class="mt-3">
-              <label for="catatan-narasumber" class="block text-xs font-bold text-slate-700 mb-1">
-                Penjelasan / Catatan Nilai Narasumber <span class="text-red-500 font-bold">*</span>
-              </label>
-              <textarea id="catatan-narasumber" rows="3" placeholder="Tuliskan penjelasan atau alasan penilaian Anda terhadap narasumber (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
-            </div>
-          </div>
-
-          <!-- Aspek B: Materi -->
-          <div class="pt-4 border-t border-slate-100">
-            <label class="block text-sm font-bold text-slate-800 mb-2.5">
-              B. Materi & Kemanfaatan <span class="text-red-500 font-bold">*</span>
-            </label>
-            <div id="grid-materi" class="rating-pills-grid transition">
-              <input type="radio" name="nilai_materi" id="b-1" value="1" class="rating-pill-input sr-only"><label for="b-1" class="rating-pill-label">1</label>
-              <input type="radio" name="nilai_materi" id="b-2" value="2" class="rating-pill-input sr-only"><label for="b-2" class="rating-pill-label">2</label>
-              <input type="radio" name="nilai_materi" id="b-3" value="3" class="rating-pill-input sr-only"><label for="b-3" class="rating-pill-label">3</label>
-              <input type="radio" name="nilai_materi" id="b-4" value="4" class="rating-pill-input sr-only"><label for="b-4" class="rating-pill-label">4</label>
-              <input type="radio" name="nilai_materi" id="b-5" value="5" class="rating-pill-input sr-only"><label for="b-5" class="rating-pill-label">5</label>
-              <input type="radio" name="nilai_materi" id="b-6" value="6" class="rating-pill-input sr-only"><label for="b-6" class="rating-pill-label">6</label>
-              <input type="radio" name="nilai_materi" id="b-7" value="7" class="rating-pill-input sr-only"><label for="b-7" class="rating-pill-label">7</label>
-              <input type="radio" name="nilai_materi" id="b-8" value="8" class="rating-pill-input sr-only"><label for="b-8" class="rating-pill-label">8</label>
-              <input type="radio" name="nilai_materi" id="b-9" value="9" class="rating-pill-input sr-only"><label for="b-9" class="rating-pill-label">9</label>
-              <input type="radio" name="nilai_materi" id="b-10" value="10" class="rating-pill-input sr-only"><label for="b-10" class="rating-pill-label">10</label>
-            </div>
-            <div class="mt-3">
-              <label for="catatan-materi" class="block text-xs font-bold text-slate-700 mb-1">
-                Penjelasan / Catatan Nilai Materi <span class="text-red-500 font-bold">*</span>
-              </label>
-              <textarea id="catatan-materi" rows="3" placeholder="Tuliskan penjelasan atau alasan penilaian Anda terkait materi kegiatan (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
-            </div>
-          </div>
-
-          <!-- Aspek C: Penyelenggaraan Panitia -->
-          <div class="pt-4 border-t border-slate-100">
-            <label class="block text-sm font-bold text-slate-800 mb-2.5">
-              C. Pelayanan & Penyelenggaraan Panitia <span class="text-red-500 font-bold">*</span>
-            </label>
-            <div id="grid-panitia" class="rating-pills-grid transition">
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-1" value="1" class="rating-pill-input sr-only"><label for="c-1" class="rating-pill-label">1</label>
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-2" value="2" class="rating-pill-input sr-only"><label for="c-2" class="rating-pill-label">2</label>
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-3" value="3" class="rating-pill-input sr-only"><label for="c-3" class="rating-pill-label">3</label>
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-4" value="4" class="rating-pill-input sr-only"><label for="c-4" class="rating-pill-label">4</label>
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-5" value="5" class="rating-pill-input sr-only"><label for="c-5" class="rating-pill-label">5</label>
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-6" value="6" class="rating-pill-input sr-only"><label for="c-6" class="rating-pill-label">6</label>
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-7" value="7" class="rating-pill-input sr-only"><label for="c-7" class="rating-pill-label">7</label>
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-8" value="8" class="rating-pill-input sr-only"><label for="c-8" class="rating-pill-label">8</label>
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-9" value="9" class="rating-pill-input sr-only"><label for="c-9" class="rating-pill-label">9</label>
-              <input type="radio" name="nilai_fasilitas_panitia" id="c-10" value="10" class="rating-pill-input sr-only"><label for="c-10" class="rating-pill-label">10</label>
-            </div>
-            <div class="mt-3">
-              <label for="catatan-panitia" class="block text-xs font-bold text-slate-700 mb-1">
-                Penjelasan / Catatan Nilai Panitia <span class="text-red-500 font-bold">*</span>
-              </label>
-              <textarea id="catatan-panitia" rows="3" placeholder="Tuliskan penjelasan atau alasan penilaian Anda terkait pelayanan dan kesiapan panitia (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
-            </div>
-          </div>
-
-          <!-- Aspek D: Kepuasan Menyeluruh -->
-          <div class="pt-4 border-t border-slate-100">
-            <label class="block text-sm font-bold text-slate-800 mb-2.5">
-              D. Kepuasan Menyeluruh (Overall) <span class="text-red-500 font-bold">*</span>
-            </label>
-            <div id="grid-kepuasan" class="rating-pills-grid transition">
-              <input type="radio" name="nilai_kepuasan" id="d-1" value="1" class="rating-pill-input sr-only"><label for="d-1" class="rating-pill-label">1</label>
-              <input type="radio" name="nilai_kepuasan" id="d-2" value="2" class="rating-pill-input sr-only"><label for="d-2" class="rating-pill-label">2</label>
-              <input type="radio" name="nilai_kepuasan" id="d-3" value="3" class="rating-pill-input sr-only"><label for="d-3" class="rating-pill-label">3</label>
-              <input type="radio" name="nilai_kepuasan" id="d-4" value="4" class="rating-pill-input sr-only"><label for="d-4" class="rating-pill-label">4</label>
-              <input type="radio" name="nilai_kepuasan" id="d-5" value="5" class="rating-pill-input sr-only"><label for="d-5" class="rating-pill-label">5</label>
-              <input type="radio" name="nilai_kepuasan" id="d-6" value="6" class="rating-pill-input sr-only"><label for="d-6" class="rating-pill-label">6</label>
-              <input type="radio" name="nilai_kepuasan" id="d-7" value="7" class="rating-pill-input sr-only"><label for="d-7" class="rating-pill-label">7</label>
-              <input type="radio" name="nilai_kepuasan" id="d-8" value="8" class="rating-pill-input sr-only"><label for="d-8" class="rating-pill-label">8</label>
-              <input type="radio" name="nilai_kepuasan" id="d-9" value="9" class="rating-pill-input sr-only"><label for="d-9" class="rating-pill-label">9</label>
-              <input type="radio" name="nilai_kepuasan" id="d-10" value="10" class="rating-pill-input sr-only"><label for="d-10" class="rating-pill-label">10</label>
-            </div>
-            <div class="mt-3">
-              <label for="catatan-kepuasan" class="block text-xs font-bold text-slate-700 mb-1">
-                Penjelasan / Catatan Kepuasan Umum <span class="text-red-500 font-bold">*</span>
-              </label>
-              <textarea id="catatan-kepuasan" rows="3" placeholder="Tuliskan penjelasan kepuasan Anda secara umum terhadap kegiatan ini (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
-            </div>
-          </div>
+          <!-- Pertanyaan Mutu Kegiatan (dirender dinamis sesuai pengaturan Marshal: standar / custom) -->
+          <div id="container-pertanyaan-mutu" class="space-y-6"></div>
 
         </div>
 
@@ -337,55 +238,8 @@
             </span>
           </div>
 
-          <!-- Fasilitas Tempat Acara -->
-          <div>
-            <label class="block text-sm font-bold text-slate-800 mb-2.5">
-              Fasilitas Tempat Acara <span class="text-red-500 font-bold">*</span>
-            </label>
-            <div id="grid-tempat-fasilitas" class="rating-pills-grid transition">
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-1" value="1" class="rating-pill-input sr-only"><label for="tf-1" class="rating-pill-label">1</label>
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-2" value="2" class="rating-pill-input sr-only"><label for="tf-2" class="rating-pill-label">2</label>
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-3" value="3" class="rating-pill-input sr-only"><label for="tf-3" class="rating-pill-label">3</label>
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-4" value="4" class="rating-pill-input sr-only"><label for="tf-4" class="rating-pill-label">4</label>
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-5" value="5" class="rating-pill-input sr-only"><label for="tf-5" class="rating-pill-label">5</label>
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-6" value="6" class="rating-pill-input sr-only"><label for="tf-6" class="rating-pill-label">6</label>
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-7" value="7" class="rating-pill-input sr-only"><label for="tf-7" class="rating-pill-label">7</label>
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-8" value="8" class="rating-pill-input sr-only"><label for="tf-8" class="rating-pill-label">8</label>
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-9" value="9" class="rating-pill-input sr-only"><label for="tf-9" class="rating-pill-label">9</label>
-              <input type="radio" name="nilai_tempat_fasilitas" id="tf-10" value="10" class="rating-pill-input sr-only"><label for="tf-10" class="rating-pill-label">10</label>
-            </div>
-            <div class="mt-3">
-              <label for="catatan-tempat-fasilitas" class="block text-xs font-bold text-slate-700 mb-1">
-                Penjelasan / Catatan Fasilitas Tempat Acara <span class="text-red-500 font-bold">*</span>
-              </label>
-              <textarea id="catatan-tempat-fasilitas" rows="3" placeholder="Tuliskan catatan terkait fasilitas tempat acara (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
-            </div>
-          </div>
-
-          <!-- Pelayanan Tempat -->
-          <div class="pt-4 border-t border-slate-100">
-            <label class="block text-sm font-bold text-slate-800 mb-2.5">
-              Pelayanan & Konsumsi Tempat <span class="text-red-500 font-bold">*</span>
-            </label>
-            <div id="grid-tempat-pelayanan" class="rating-pills-grid transition">
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-1" value="1" class="rating-pill-input sr-only"><label for="tp-1" class="rating-pill-label">1</label>
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-2" value="2" class="rating-pill-input sr-only"><label for="tp-2" class="rating-pill-label">2</label>
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-3" value="3" class="rating-pill-input sr-only"><label for="tp-3" class="rating-pill-label">3</label>
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-4" value="4" class="rating-pill-input sr-only"><label for="tp-4" class="rating-pill-label">4</label>
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-5" value="5" class="rating-pill-input sr-only"><label for="tp-5" class="rating-pill-label">5</label>
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-6" value="6" class="rating-pill-input sr-only"><label for="tp-6" class="rating-pill-label">6</label>
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-7" value="7" class="rating-pill-input sr-only"><label for="tp-7" class="rating-pill-label">7</label>
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-8" value="8" class="rating-pill-input sr-only"><label for="tp-8" class="rating-pill-label">8</label>
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-9" value="9" class="rating-pill-input sr-only"><label for="tp-9" class="rating-pill-label">9</label>
-              <input type="radio" name="nilai_tempat_pelayanan" id="tp-10" value="10" class="rating-pill-input sr-only"><label for="tp-10" class="rating-pill-label">10</label>
-            </div>
-            <div class="mt-3">
-              <label for="catatan-tempat-pelayanan" class="block text-xs font-bold text-slate-700 mb-1">
-                Penjelasan / Catatan Pelayanan & Konsumsi Tempat <span class="text-red-500 font-bold">*</span>
-              </label>
-              <textarea id="catatan-tempat-pelayanan" rows="3" placeholder="Tuliskan catatan terkait pelayanan dan konsumsi tempat (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
-            </div>
-          </div>
+          <!-- Pertanyaan Tempat Acara (dirender dinamis sesuai pengaturan Marshal) -->
+          <div id="container-pertanyaan-tempat" class="space-y-6"></div>
         </div>
 
         <!-- MASUKAN TERBUKA (KOLOM LEGA) -->

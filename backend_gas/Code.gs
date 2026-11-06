@@ -43,7 +43,8 @@ function setupDatabase() {
   giatSheet.clear();
   const giatHeaders = [
     "id_kegiatan", "nama_kegiatan", "tanggal", "tempat", 
-    "is_lokasi_active", "status", "created_at", "closed_at"
+    "is_lokasi_active", "status", "created_at", "closed_at",
+    "pertanyaan_json"
   ];
   giatSheet.getRange(1, 1, 1, giatHeaders.length).setValues([giatHeaders]);
   giatSheet.getRange(1, 1, 1, giatHeaders.length).setBackground("#C44300").setFontColor("#FFFFFF").setFontWeight("bold");
@@ -55,18 +56,7 @@ function setupDatabase() {
     responSheet = ss.insertSheet("RESPON");
   }
   responSheet.clear();
-  const responHeaders = [
-    "id_respon", "id_kegiatan", "timestamp", "mode_identitas",
-    "nama", "asal_sekolah", "jabatan",
-    "nilai_narasumber", "nilai_materi", "nilai_fasilitas_panitia", "nilai_kepuasan",
-    "rata_rata_kegiatan", "bintang_kegiatan",
-    "nilai_tempat_fasilitas", "nilai_tempat_pelayanan",
-    "rata_rata_tempat", "bintang_tempat",
-    "saran_masukan", "rekomendasi_topik"
-  ];
-  responSheet.getRange(1, 1, 1, responHeaders.length).setValues([responHeaders]);
-  responSheet.getRange(1, 1, 1, responHeaders.length).setBackground("#EA580C").setFontColor("#FFFFFF").setFontWeight("bold");
-  responSheet.autoResizeColumns(1, responHeaders.length);
+  writeResponHeader(responSheet, normalizePertanyaan(null, true));
 
   // Hapus Sheet1 bawaan jika ada dan tab lain sudah ada
   const sheet1 = ss.getSheetByName("Sheet1");
@@ -188,6 +178,184 @@ function formatGasIndoDate(val) {
 }
 
 /**
+ * ============================================================================
+ * DAFTAR PERTANYAAN (STANDAR / CUSTOM PER KEGIATAN)
+ * ============================================================================
+ */
+const MAX_PERTANYAAN_MUTU = 10;
+const MAX_PERTANYAAN_TEMPAT = 5;
+const MAX_PANJANG_PERTANYAAN = 150;
+
+const PERTANYAAN_STANDAR = {
+  mutu: [
+    "Kualitas Narasumber / Fasilitator",
+    "Materi & Kemanfaatan",
+    "Pelayanan & Penyelenggaraan Panitia",
+    "Kepuasan Menyeluruh (Overall)"
+  ],
+  tempat: [
+    "Fasilitas Tempat Acara",
+    "Pelayanan & Konsumsi Tempat"
+  ]
+};
+
+/**
+ * Tata letak kolom Sheet RESPON (index 0-based).
+ * Mutu ke-i  : nilai di kolom MUTU_START + 2i, catatan di MUTU_START + 2i + 1 (i = 0..9)
+ * Tempat ke-j: nilai di kolom TEMPAT_START + 2j, catatan di TEMPAT_START + 2j + 1 (j = 0..4)
+ */
+const RCOL = {
+  ID: 0, ID_GIAT: 1, TS: 2, MODE: 3, NAMA: 4, SEKOLAH: 5, JABATAN: 6,
+  MUTU_START: 7,
+  RATA_KEG: 27, BINTANG_KEG: 28,
+  TEMPAT_START: 29,
+  RATA_TMP: 39, BINTANG_TMP: 40,
+  SARAN: 41, REKOM: 42
+};
+const RESPON_TOTAL_COLS = 43;
+
+function hurufUrut(i) {
+  return String.fromCharCode(65 + i); // 0 -> A, 1 -> B, dst.
+}
+
+/**
+ * Merapikan daftar pertanyaan. Jika kosong / rusak, otomatis memakai pertanyaan standar.
+ */
+function normalizePertanyaan(raw, isLokasi) {
+  let obj = raw;
+  if (typeof raw === "string") {
+    try { obj = raw ? JSON.parse(raw) : null; } catch (e) { obj = null; }
+  }
+  const clean = (arr, max) => (Array.isArray(arr) ? arr : [])
+    .map(q => String(q || "").trim().substring(0, MAX_PANJANG_PERTANYAAN))
+    .filter(q => q)
+    .slice(0, max);
+
+  let mutu = clean(obj && obj.mutu, MAX_PERTANYAAN_MUTU);
+  let tempat = clean(obj && obj.tempat, MAX_PERTANYAAN_TEMPAT);
+
+  if (mutu.length === 0) mutu = PERTANYAAN_STANDAR.mutu.slice();
+  if (isLokasi && tempat.length === 0) tempat = PERTANYAAN_STANDAR.tempat.slice();
+  if (!isLokasi) tempat = [];
+
+  return { mutu: mutu, tempat: tempat };
+}
+
+/**
+ * Menulis ulang baris judul Sheet RESPON sesuai teks pertanyaan kegiatan aktif,
+ * sehingga arsip & Gemini AI tahu persis arti setiap kolom.
+ */
+function writeResponHeader(sheet, pertanyaan) {
+  const headers = ["id_respon", "id_kegiatan", "timestamp", "mode_identitas", "nama", "asal_sekolah", "jabatan"];
+
+  for (let i = 0; i < MAX_PERTANYAAN_MUTU; i++) {
+    const q = pertanyaan.mutu[i];
+    if (q) {
+      headers.push("[" + hurufUrut(i) + "] " + q + " - Nilai (1-10)");
+      headers.push("[" + hurufUrut(i) + "] " + q + " - Alasan / Catatan");
+    } else {
+      headers.push("Mutu " + hurufUrut(i) + " (tidak dipakai)");
+      headers.push("Catatan Mutu " + hurufUrut(i) + " (tidak dipakai)");
+    }
+  }
+  headers.push("rata_rata_kegiatan", "bintang_kegiatan");
+
+  for (let j = 0; j < MAX_PERTANYAAN_TEMPAT; j++) {
+    const q = pertanyaan.tempat[j];
+    if (q) {
+      headers.push("[Tempat " + hurufUrut(j) + "] " + q + " - Nilai (1-10)");
+      headers.push("[Tempat " + hurufUrut(j) + "] " + q + " - Alasan / Catatan");
+    } else {
+      headers.push("Tempat " + hurufUrut(j) + " (tidak dipakai)");
+      headers.push("Catatan Tempat " + hurufUrut(j) + " (tidak dipakai)");
+    }
+  }
+  headers.push("rata_rata_tempat", "bintang_tempat", "saran_masukan", "rekomendasi_topik");
+
+  const clearCols = Math.max(sheet.getMaxColumns(), RESPON_TOTAL_COLS);
+  if (sheet.getMaxColumns() < RESPON_TOTAL_COLS) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), RESPON_TOTAL_COLS - sheet.getMaxColumns());
+  }
+  sheet.getRange(1, 1, 1, clearCols).clearContent();
+  sheet.getRange(1, 1, 1, RESPON_TOTAL_COLS).setValues([headers]);
+  sheet.getRange(1, 1, 1, RESPON_TOTAL_COLS).setBackground("#EA580C").setFontColor("#FFFFFF").setFontWeight("bold");
+  sheet.setFrozenRows(1);
+}
+
+/**
+ * Mengecek apakah Sheet RESPON sudah memakai tata letak baru (slot pertanyaan).
+ */
+function isResponLayoutBaru(sheet) {
+  if (!sheet || sheet.getLastColumn() < RESPON_TOTAL_COLS) return false;
+  const header = sheet.getRange(1, 1, 1, RESPON_TOTAL_COLS).getValues()[0];
+  return String(header[RCOL.REKOM]).trim() === "rekomendasi_topik";
+}
+
+/**
+ * Mengubah 1 baris Sheet RESPON menjadi objek rapi (mendukung format lama & baru).
+ */
+function parseResponRow(r, isBaru, pertanyaan) {
+  const res = {
+    id_respon: r[RCOL.ID],
+    id_kegiatan: r[RCOL.ID_GIAT],
+    timestamp: r[RCOL.TS],
+    mode: String(r[RCOL.MODE] || ""),
+    nama: r[RCOL.NAMA],
+    sekolah: r[RCOL.SEKOLAH],
+    jabatan: r[RCOL.JABATAN],
+    mutu: [],
+    tempat: []
+  };
+
+  if (isBaru) {
+    pertanyaan.mutu.forEach((q, i) => {
+      res.mutu.push({ pertanyaan: q, nilai: r[RCOL.MUTU_START + 2 * i], catatan: String(r[RCOL.MUTU_START + 2 * i + 1] || "").trim() });
+    });
+    pertanyaan.tempat.forEach((q, j) => {
+      res.tempat.push({ pertanyaan: q, nilai: r[RCOL.TEMPAT_START + 2 * j], catatan: String(r[RCOL.TEMPAT_START + 2 * j + 1] || "").trim() });
+    });
+    res.rata_kegiatan = r[RCOL.RATA_KEG];
+    res.bintang_kegiatan = r[RCOL.BINTANG_KEG];
+    res.rata_tempat = r[RCOL.RATA_TMP];
+    res.bintang_tempat = r[RCOL.BINTANG_TMP];
+    res.saran = String(r[RCOL.SARAN] || "").trim();
+    res.rekomendasi = String(r[RCOL.REKOM] || "").trim();
+  } else {
+    // Format lama (19 kolom, 4 pertanyaan mutu + 2 tempat, catatan tergabung di saran)
+    PERTANYAAN_STANDAR.mutu.forEach((q, i) => {
+      res.mutu.push({ pertanyaan: q, nilai: r[7 + i], catatan: "" });
+    });
+    if (r[13] !== "" && r[13] !== undefined) {
+      PERTANYAAN_STANDAR.tempat.forEach((q, j) => {
+        res.tempat.push({ pertanyaan: q, nilai: r[13 + j], catatan: "" });
+      });
+    }
+    res.rata_kegiatan = r[11];
+    res.bintang_kegiatan = r[12];
+    res.rata_tempat = r[15];
+    res.bintang_tempat = r[16];
+    res.saran = String(r[17] || "").trim();
+    res.rekomendasi = String(r[18] || "").trim();
+  }
+  return res;
+}
+
+/**
+ * Gabungan catatan per pertanyaan + saran (untuk tabel dashboard & laporan unduhan).
+ */
+function buildSaranGabungan(p) {
+  const lines = [];
+  p.mutu.forEach((m, i) => {
+    if (m.catatan) lines.push("[" + hurufUrut(i) + ". " + m.pertanyaan + " = " + m.nilai + "] " + m.catatan);
+  });
+  p.tempat.forEach((t, j) => {
+    if (t.catatan) lines.push("[Tempat " + hurufUrut(j) + ". " + t.pertanyaan + " = " + t.nilai + "] " + t.catatan);
+  });
+  if (p.saran) lines.push((lines.length ? "\nSaran: " : "") + p.saran);
+  return lines.join("\n");
+}
+
+/**
  * Mengambil kegiatan yang sedang berstatus 'OPEN'
  */
 function getActiveEvent() {
@@ -207,6 +375,7 @@ function getActiveEvent() {
     const row = data[i];
     const status = String(row[5]).toUpperCase().trim();
     if (status === "OPEN") {
+      const isLokasi = row[4] === true || String(row[4]).toLowerCase() === "true";
       return {
         status: "ACTIVE",
         event: {
@@ -214,7 +383,8 @@ function getActiveEvent() {
           nama_kegiatan: row[1],
           tanggal: formatGasIndoDate(row[2]),
           tempat: row[3],
-          is_lokasi_active: row[4] === true || String(row[4]).toLowerCase() === "true"
+          is_lokasi_active: isLokasi,
+          pertanyaan: normalizePertanyaan(row[8], isLokasi)
         }
       };
     }
@@ -235,6 +405,8 @@ function getMarshalDashboardData() {
   const ss = getSpreadsheet();
   const responSheet = ss.getSheetByName("RESPON");
   const data = responSheet ? responSheet.getDataRange().getValues() : [];
+  const isBaru = isResponLayoutBaru(responSheet);
+  const pertanyaan = activeEvent.event.pertanyaan;
 
   let count = 0;
   let totalBintangKegiatan = 0;
@@ -243,42 +415,67 @@ function getMarshalDashboardData() {
   let countBintangTempat = 0;
   let recentResponses = [];
 
+  // Akumulator rata-rata per pertanyaan
+  const statMutu = pertanyaan.mutu.map(q => ({ pertanyaan: q, total: 0, n: 0 }));
+  const statTempat = pertanyaan.tempat.map(q => ({ pertanyaan: q, total: 0, n: 0 }));
+
   const activeId = activeEvent.event.id_kegiatan;
 
   // Header ada di baris 0
   for (let i = 1; i < data.length; i++) {
     const r = data[i];
-    if (String(r[1]) === String(activeId)) {
-      count++;
-      const bintangKeg = parseFloat(r[12]);
-      if (!isNaN(bintangKeg) && bintangKeg > 0) {
-        totalBintangKegiatan += bintangKeg;
-        countBintangKegiatan++;
-      }
+    if (String(r[1]) !== String(activeId)) continue;
 
-      const bintangTmp = parseFloat(r[16]);
-      if (!isNaN(bintangTmp) && bintangTmp > 0) {
-        totalBintangTempat += bintangTmp;
-        countBintangTempat++;
-      }
+    const p = parseResponRow(r, isBaru, pertanyaan);
+    count++;
 
-      recentResponses.push({
-        id_respon: r[0],
-        timestamp: r[2],
-        mode: r[3],
-        nama: r[4],
-        sekolah: r[5],
-        jabatan: r[6],
-        bintang_kegiatan: r[12],
-        bintang_tempat: r[16],
-        saran: r[17],
-        rekomendasi: r[18]
-      });
+    const bintangKeg = parseFloat(p.bintang_kegiatan);
+    if (!isNaN(bintangKeg) && bintangKeg > 0) {
+      totalBintangKegiatan += bintangKeg;
+      countBintangKegiatan++;
     }
+
+    const bintangTmp = parseFloat(p.bintang_tempat);
+    if (!isNaN(bintangTmp) && bintangTmp > 0) {
+      totalBintangTempat += bintangTmp;
+      countBintangTempat++;
+    }
+
+    p.mutu.forEach((m, idx) => {
+      const v = parseFloat(m.nilai);
+      if (statMutu[idx] && !isNaN(v)) { statMutu[idx].total += v; statMutu[idx].n++; }
+    });
+    p.tempat.forEach((t, idx) => {
+      const v = parseFloat(t.nilai);
+      if (statTempat[idx] && !isNaN(v)) { statTempat[idx].total += v; statTempat[idx].n++; }
+    });
+
+    recentResponses.push({
+      id_respon: p.id_respon,
+      timestamp: p.timestamp,
+      mode: p.mode,
+      nama: p.nama,
+      sekolah: p.sekolah,
+      jabatan: p.jabatan,
+      bintang_kegiatan: p.bintang_kegiatan,
+      bintang_tempat: p.bintang_tempat,
+      nilai_mutu: p.mutu,
+      nilai_tempat: p.tempat,
+      saran_murni: p.saran,
+      saran: buildSaranGabungan(p),
+      rekomendasi: p.rekomendasi
+    });
   }
 
   const avgKegiatan = countBintangKegiatan > 0 ? (totalBintangKegiatan / countBintangKegiatan).toFixed(2) : "0.00";
   const avgTempat = countBintangTempat > 0 ? (totalBintangTempat / countBintangTempat).toFixed(2) : "0.00";
+
+  const finalizeStat = (s, idx, prefix) => ({
+    label: prefix + hurufUrut(idx),
+    pertanyaan: s.pertanyaan,
+    rata_rata: s.n > 0 ? (s.total / s.n).toFixed(2) : "0.00",
+    jumlah: s.n
+  });
 
   return {
     status: "ACTIVE",
@@ -288,6 +485,10 @@ function getMarshalDashboardData() {
       avg_bintang_kegiatan: avgKegiatan,
       avg_bintang_tempat: avgTempat,
       is_lokasi_active: activeEvent.event.is_lokasi_active
+    },
+    question_stats: {
+      mutu: statMutu.map((s, idx) => finalizeStat(s, idx, "")),
+      tempat: statTempat.map((s, idx) => finalizeStat(s, idx, "Tempat "))
     },
     responses: recentResponses.reverse() // Terbaru di atas
   };
@@ -325,6 +526,19 @@ function handleOpenEvent(params) {
 
   const isLokasi = params.is_lokasi_active === true || params.is_lokasi_active === "true";
 
+  // Validasi daftar pertanyaan (standar / custom)
+  const rawP = params.pertanyaan || {};
+  const rawMutu = (Array.isArray(rawP.mutu) ? rawP.mutu : []).map(q => String(q || "").trim()).filter(q => q);
+  const rawTempat = (Array.isArray(rawP.tempat) ? rawP.tempat : []).map(q => String(q || "").trim()).filter(q => q);
+
+  if (rawMutu.length > MAX_PERTANYAAN_MUTU) {
+    return { status: "error", message: "Pertanyaan Penilaian Mutu Kegiatan maksimal " + MAX_PERTANYAAN_MUTU + "." };
+  }
+  if (isLokasi && rawTempat.length > MAX_PERTANYAAN_TEMPAT) {
+    return { status: "error", message: "Pertanyaan Penilaian Tempat Acara maksimal " + MAX_PERTANYAAN_TEMPAT + "." };
+  }
+  const pertanyaan = normalizePertanyaan({ mutu: rawMutu, tempat: rawTempat }, isLokasi);
+
   giatSheet.appendRow([
     newId,
     params.nama_kegiatan,
@@ -333,8 +547,24 @@ function handleOpenEvent(params) {
     isLokasi,
     "OPEN",
     now,
-    ""
+    "",
+    JSON.stringify(pertanyaan)
   ]);
+
+  // Siapkan Sheet RESPON untuk kegiatan baru
+  let responSheet = ss.getSheetByName("RESPON");
+  if (!responSheet) {
+    responSheet = ss.insertSheet("RESPON");
+  }
+  // Jika masih ada sisa data yang belum diarsipkan, amankan dulu ke tab arsip
+  if (responSheet.getLastRow() > 1) {
+    const sisaName = "ARSIP_SISA_" + Utilities.formatDate(now, "Asia/Jakarta", "ddMMyy-HHmmss");
+    const sisa = responSheet.copyTo(ss);
+    sisa.setName(sisaName);
+    sisa.setTabColor("#64748B");
+    responSheet.deleteRows(2, responSheet.getLastRow() - 1);
+  }
+  writeResponHeader(responSheet, pertanyaan);
 
   return {
     status: "success",
@@ -362,25 +592,56 @@ function handleSubmitRating(params) {
   const now = new Date();
   const idRespon = "RES-" + Utilities.formatDate(now, "Asia/Jakarta", "yyyyMMddHHmmss") + "-" + Math.floor(Math.random() * 899 + 100);
 
-  // Parse Skor Kegiatan
-  const skorA = parseFloat(params.nilai_narasumber) || 0;
-  const skorB = parseFloat(params.nilai_materi) || 0;
-  const skorC = parseFloat(params.nilai_fasilitas_panitia) || 0;
-  const skorD = parseFloat(params.nilai_kepuasan) || 0;
+  const pertanyaan = activeEvent.event.pertanyaan;
+  const isLokasi = activeEvent.event.is_lokasi_active;
 
-  const rataKegiatan = ((skorA + skorB + skorC + skorD) / 4);
+  // Pastikan Sheet RESPON memakai tata letak baru
+  if (!isResponLayoutBaru(responSheet)) {
+    if (responSheet.getLastRow() <= 1) {
+      writeResponHeader(responSheet, pertanyaan);
+    } else {
+      return { status: "error", message: "Format Sheet RESPON masih versi lama. Panitia perlu melakukan 'Ganti Kegiatan' terlebih dahulu." };
+    }
+  }
+
+  // Validasi & parse nilai + catatan per pertanyaan
+  const parseBagian = (daftar, nilaiArr, catatanArr, namaBagian) => {
+    const nilai = Array.isArray(nilaiArr) ? nilaiArr : [];
+    const catatan = Array.isArray(catatanArr) ? catatanArr : [];
+    const hasil = [];
+    for (let i = 0; i < daftar.length; i++) {
+      const v = parseInt(nilai[i], 10);
+      const c = String(catatan[i] || "").trim();
+      if (isNaN(v) || v < 1 || v > 10) {
+        return { error: "Nilai " + namaBagian + " poin " + hurufUrut(i) + " wajib dipilih (1 - 10)." };
+      }
+      if (!c) {
+        return { error: "Alasan / catatan " + namaBagian + " poin " + hurufUrut(i) + " wajib diisi." };
+      }
+      hasil.push({ nilai: v, catatan: c.substring(0, 2000) });
+    }
+    return { data: hasil };
+  };
+
+  const mutu = parseBagian(pertanyaan.mutu, params.nilai_mutu, params.catatan_mutu, "Mutu Kegiatan");
+  if (mutu.error) return { status: "error", message: mutu.error };
+
+  let tempat = { data: [] };
+  if (isLokasi) {
+    tempat = parseBagian(pertanyaan.tempat, params.nilai_tempat, params.catatan_tempat, "Tempat Acara");
+    if (tempat.error) return { status: "error", message: tempat.error };
+  }
+
+  // Hitung rata-rata sesuai jumlah pertanyaan yang aktif
+  const sumMutu = mutu.data.reduce((a, b) => a + b.nilai, 0);
+  const rataKegiatan = sumMutu / mutu.data.length;
   const bintangKegiatan = (rataKegiatan / 2).toFixed(2); // Konversi skala 1-10 ke skala 1-5
 
-  // Parse Skor Tempat (jika aktif)
-  let skorTmpFas = "";
-  let skorTmpPel = "";
   let rataTempat = "";
   let bintangTempat = "";
-
-  if (activeEvent.event.is_lokasi_active) {
-    skorTmpFas = parseFloat(params.nilai_tempat_fasilitas) || 0;
-    skorTmpPel = parseFloat(params.nilai_tempat_pelayanan) || 0;
-    rataTempat = ((skorTmpFas + skorTmpPel) / 2);
+  if (isLokasi && tempat.data.length > 0) {
+    const sumTmp = tempat.data.reduce((a, b) => a + b.nilai, 0);
+    rataTempat = sumTmp / tempat.data.length;
     bintangTempat = (rataTempat / 2).toFixed(2);
   }
 
@@ -389,34 +650,37 @@ function handleSubmitRating(params) {
   const sekolah = isAnon ? "(Anonim)" : (params.asal_sekolah || "-");
   const jabatan = isAnon ? "(Anonim)" : (params.jabatan || "-");
 
-  responSheet.appendRow([
-    idRespon,
-    params.id_kegiatan,
-    now,
-    params.mode_identitas,
-    nama,
-    sekolah,
-    jabatan,
-    skorA,
-    skorB,
-    skorC,
-    skorD,
-    rataKegiatan.toFixed(2),
-    bintangKegiatan,
-    skorTmpFas,
-    skorTmpPel,
-    rataTempat !== "" ? rataTempat.toFixed(2) : "",
-    bintangTempat,
-    params.saran_masukan || "",
-    params.rekomendasi_topik || ""
-  ]);
+  const row = new Array(RESPON_TOTAL_COLS).fill("");
+  row[RCOL.ID] = idRespon;
+  row[RCOL.ID_GIAT] = params.id_kegiatan;
+  row[RCOL.TS] = now;
+  row[RCOL.MODE] = params.mode_identitas;
+  row[RCOL.NAMA] = nama;
+  row[RCOL.SEKOLAH] = sekolah;
+  row[RCOL.JABATAN] = jabatan;
+  mutu.data.forEach((m, i) => {
+    row[RCOL.MUTU_START + 2 * i] = m.nilai;
+    row[RCOL.MUTU_START + 2 * i + 1] = m.catatan;
+  });
+  row[RCOL.RATA_KEG] = rataKegiatan.toFixed(2);
+  row[RCOL.BINTANG_KEG] = bintangKegiatan;
+  tempat.data.forEach((t, j) => {
+    row[RCOL.TEMPAT_START + 2 * j] = t.nilai;
+    row[RCOL.TEMPAT_START + 2 * j + 1] = t.catatan;
+  });
+  row[RCOL.RATA_TMP] = rataTempat !== "" ? rataTempat.toFixed(2) : "";
+  row[RCOL.BINTANG_TMP] = bintangTempat;
+  row[RCOL.SARAN] = params.saran_masukan || "";
+  row[RCOL.REKOM] = params.rekomendasi_topik || "";
+
+  responSheet.appendRow(row);
 
   return {
     status: "success",
     message: "Terima kasih, penilaian Anda telah tersimpan!",
     bintang_kegiatan: bintangKegiatan,
     bintang_tempat: bintangTempat,
-    is_lokasi_active: activeEvent.event.is_lokasi_active
+    is_lokasi_active: isLokasi
   };
 }
 
@@ -517,56 +781,65 @@ function handleAskGemini(params) {
   const ss = getSpreadsheet();
   const responSheet = ss.getSheetByName("RESPON");
   const data = responSheet ? responSheet.getDataRange().getValues() : [];
+  const isBaru = isResponLayoutBaru(responSheet);
+  const pertanyaan = activeEvent.event.pertanyaan;
+  const isLokasi = activeEvent.event.is_lokasi_active;
 
   const activeId = activeEvent.event.id_kegiatan;
   let reviewsText = [];
   let totalRespon = 0;
   let totalBintang = 0;
+  let totalBintangTmp = 0;
+  let countBintangTmp = 0;
+  const statMutu = pertanyaan.mutu.map(() => ({ total: 0, n: 0 }));
+  const statTempat = pertanyaan.tempat.map(() => ({ total: 0, n: 0 }));
 
   for (let i = 1; i < data.length; i++) {
     const r = data[i];
-    if (String(r[1]) === String(activeId)) {
-      totalRespon++;
-      const wkt = formatGasIndoDate(r[2]);
-      const mode = String(r[3]); // DATA / ANONYMOUS
-      const isAnon = mode === "ANONYMOUS";
-      const nama = isAnon ? "(Disamarkan / Mode Anonim)" : String(r[4] || "-");
-      const sekolah = isAnon ? "(Disamarkan / Mode Anonim)" : String(r[5] || "-");
-      const jabatan = String(r[6] || "-");
-      
-      const skorNara = r[7];
-      const skorMat = r[8];
-      const skorPan = r[9];
-      const skorKep = r[10];
-      const rataKeg = r[11];
-      const bintangKeg = r[12];
-      totalBintang += parseFloat(bintangKeg) || 0;
+    if (String(r[1]) !== String(activeId)) continue;
 
-      const skorTmpFas = r[13];
-      const skorTmpPel = r[14];
-      const rataTmp = r[15];
-      const bintangTmp = r[16];
+    const p = parseResponRow(r, isBaru, pertanyaan);
+    totalRespon++;
+    const wkt = formatGasIndoDate(p.timestamp);
+    const isAnon = p.mode === "ANONYMOUS";
+    const nama = isAnon ? "(Disamarkan / Mode Anonim)" : String(p.nama || "-");
+    const sekolah = isAnon ? "(Disamarkan / Mode Anonim)" : String(p.sekolah || "-");
+    const jabatan = String(p.jabatan || "-");
+    totalBintang += parseFloat(p.bintang_kegiatan) || 0;
 
-      const saran = r[17] ? String(r[17]).trim() : "-";
-      const rekomendasi = r[18] ? String(r[18]).trim() : "-";
+    let rowDesc =
+      "Responden #" + totalRespon + " [" + (isAnon ? "MODE: ANONIM" : "IDENTITAS RESMI") + "]:\n" +
+      "  • Nama Lengkap: " + nama + "\n" +
+      "  • Asal Satuan Pendidikan (SMP): " + sekolah + "\n" +
+      "  • Jabatan / Peran: " + jabatan + "\n" +
+      "  • Waktu Mengisi: " + wkt + "\n" +
+      "  • Penilaian Mutu Kegiatan (skala 1-10):\n";
 
-      let rowDesc = 
-        "Responden #" + totalRespon + " [" + (isAnon ? "MODE: ANONIM" : "IDENTITAS RESMI") + "]:\n" +
-        "  • Nama Lengkap: " + nama + "\n" +
-        "  • Asal Satuan Pendidikan (SMP): " + sekolah + "\n" +
-        "  • Jabatan / Peran: " + jabatan + "\n" +
-        "  • Waktu Mengisi: " + wkt + "\n" +
-        "  • Nilai Mutu Kegiatan (1-10): Narasumber=" + skorNara + ", Materi=" + skorMat + ", Panitia=" + skorPan + ", Kepuasan=" + skorKep + " (Rata-rata: " + rataKeg + " | Bintang: " + bintangKeg + "/5.0)\n";
+    p.mutu.forEach((m, idx) => {
+      const v = parseFloat(m.nilai);
+      if (statMutu[idx] && !isNaN(v)) { statMutu[idx].total += v; statMutu[idx].n++; }
+      rowDesc += "      - [" + hurufUrut(idx) + "] " + m.pertanyaan + " = " + m.nilai +
+                 (m.catatan ? " | Alasan/Catatan: \"" + m.catatan + "\"" : "") + "\n";
+    });
+    rowDesc += "      (Rata-rata: " + p.rata_kegiatan + " | Bintang: " + p.bintang_kegiatan + "/5.0)\n";
 
-      if (activeEvent.event.is_lokasi_active) {
-        rowDesc += "  • Nilai Tempat Acara (1-10): Fasilitas=" + skorTmpFas + ", Pelayanan=" + skorTmpPel + " (Bintang Tempat: " + bintangTmp + "/5.0)\n";
-      }
-
-      rowDesc += "  • Catatan & Saran Masukan: " + saran + "\n" +
-                 "  • Rekomendasi Topik Depan: " + rekomendasi;
-
-      reviewsText.push(rowDesc);
+    if (isLokasi && p.tempat.length > 0) {
+      const bt = parseFloat(p.bintang_tempat);
+      if (!isNaN(bt) && bt > 0) { totalBintangTmp += bt; countBintangTmp++; }
+      rowDesc += "  • Penilaian Tempat Acara (skala 1-10):\n";
+      p.tempat.forEach((t, idx) => {
+        const v = parseFloat(t.nilai);
+        if (statTempat[idx] && !isNaN(v)) { statTempat[idx].total += v; statTempat[idx].n++; }
+        rowDesc += "      - [Tempat " + hurufUrut(idx) + "] " + t.pertanyaan + " = " + t.nilai +
+                   (t.catatan ? " | Alasan/Catatan: \"" + t.catatan + "\"" : "") + "\n";
+      });
+      rowDesc += "      (Bintang Tempat: " + p.bintang_tempat + "/5.0)\n";
     }
+
+    rowDesc += "  • Saran & Masukan: " + (p.saran || "-") + "\n" +
+               "  • Rekomendasi Topik Depan: " + (p.rekomendasi || "-");
+
+    reviewsText.push(rowDesc);
   }
 
   if (totalRespon === 0) {
@@ -579,14 +852,30 @@ function handleAskGemini(params) {
   const avgBintang = (totalBintang / totalRespon).toFixed(2);
   const promptUser = params.question || "Buatkan ringkasan eksekutif hasil evaluasi kegiatan ini.";
 
+  // Daftar pertanyaan & rata-rata per pertanyaan
+  let daftarPertanyaanText = "DAFTAR PERTANYAAN PENILAIAN MUTU KEGIATAN (" + pertanyaan.mutu.length + " pertanyaan):\n";
+  pertanyaan.mutu.forEach((q, idx) => {
+    const s = statMutu[idx];
+    daftarPertanyaanText += "  [" + hurufUrut(idx) + "] " + q + " -> rata-rata " + (s.n ? (s.total / s.n).toFixed(2) : "-") + " / 10\n";
+  });
+  if (isLokasi) {
+    daftarPertanyaanText += "DAFTAR PERTANYAAN PENILAIAN TEMPAT ACARA (" + pertanyaan.tempat.length + " pertanyaan):\n";
+    pertanyaan.tempat.forEach((q, idx) => {
+      const s = statTempat[idx];
+      daftarPertanyaanText += "  [Tempat " + hurufUrut(idx) + "] " + q + " -> rata-rata " + (s.n ? (s.total / s.n).toFixed(2) : "-") + " / 10\n";
+    });
+  }
+
   const contextData = 
     "KONTEKS KEGIATAN AKTIF:\n" +
     "- Nama Kegiatan: " + activeEvent.event.nama_kegiatan + "\n" +
     "- Tanggal: " + activeEvent.event.tanggal + "\n" +
     "- Tempat: " + activeEvent.event.tempat + "\n" +
-    "- Evaluasi Tempat Acara Aktif: " + (activeEvent.event.is_lokasi_active ? "YA" : "TIDAK") + "\n" +
+    "- Evaluasi Tempat Acara Aktif: " + (isLokasi ? "YA" : "TIDAK") + "\n" +
     "- Total Responden: " + totalRespon + " orang\n" +
-    "- Rata-rata Bintang Kegiatan: " + avgBintang + " / 5.00\n\n" +
+    "- Rata-rata Bintang Kegiatan: " + avgBintang + " / 5.00\n" +
+    (isLokasi ? "- Rata-rata Bintang Tempat: " + (countBintangTmp ? (totalBintangTmp / countBintangTmp).toFixed(2) : "-") + " / 5.00\n" : "") +
+    "\n" + daftarPertanyaanText + "\n" +
     "DATA LENGKAP SHEET RESPON (HANYA DARI KEGIATAN INI):\n" +
     reviewsText.slice(0, 150).join("\n\n") + "\n\n" +
     "PERTANYAAN / INSTRUKSI PANITIA:\n" +
@@ -594,9 +883,11 @@ function handleAskGemini(params) {
 
   const systemInstruction = 
     "Anda adalah Asisten Analisis Data Kegiatan Bidang SMP Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar. " +
-    "Data di atas diambil langsung dan lengkap dari Sheet RESPON Google Spreadsheet untuk kegiatan aktif saat ini. " +
+    "Data di bawah diambil langsung dan lengkap dari Sheet RESPON Google Spreadsheet untuk kegiatan aktif saat ini. " +
+    "Daftar pertanyaan penilaian dapat berbeda di setiap kegiatan (standar atau custom), jadi selalu gunakan teks pertanyaan persis seperti di DAFTAR PERTANYAAN. " +
+    "Setiap nilai disertai alasan/catatan dari responden; gunakan catatan tersebut untuk menjelaskan mengapa nilai tinggi atau rendah. " +
     "Jawab pertanyaan panitia secara profesional, ringkas, objektif, dan terstruktur berbasis data tersebut. " +
-    "Jika panitia menanyakan nama responden atau sekolah, sebutkan secara jelas dan presisi sesuai data di atas. " +
+    "Jika panitia menanyakan nama responden atau sekolah, sebutkan secara jelas dan presisi sesuai data. " +
     "Jangan mengarang data di luar konteks Sheet RESPON yang diberikan.";
 
   // Konfigurasi Payload Gemini

@@ -213,14 +213,246 @@ function setupQrCode(event) {
 }
 
 /**
+ * ============================================================================
+ * PENGATURAN PERTANYAAN (STANDAR / CUSTOM) PADA FORM BUKA KEGIATAN BARU
+ * ============================================================================
+ */
+const DEFAULT_QUESTIONS = {
+  mutu: [
+    "Kualitas Narasumber / Fasilitator",
+    "Materi & Kemanfaatan",
+    "Pelayanan & Penyelenggaraan Panitia",
+    "Kepuasan Menyeluruh (Overall)"
+  ],
+  tempat: [
+    "Fasilitas Tempat Acara",
+    "Pelayanan & Konsumsi Tempat"
+  ]
+};
+
+const MAX_Q_MUTU = 10;
+const MAX_Q_TEMPAT = 5;
+
+let customQuestions = {
+  mutu: [...DEFAULT_QUESTIONS.mutu],
+  tempat: [...DEFAULT_QUESTIONS.tempat]
+};
+
+function hurufUrut(idx) {
+  return String.fromCharCode(65 + idx); // 0 -> A, 1 -> B, dst.
+}
+
+function renderQuestionListUI(type) {
+  const isMutu = type === "mutu";
+  const listEl = document.getElementById(isMutu ? "list-pertanyaan-mutu" : "list-pertanyaan-tempat");
+  const badgeEl = document.getElementById(isMutu ? "badge-count-mutu" : "badge-count-tempat");
+  const maxLimit = isMutu ? MAX_Q_MUTU : MAX_Q_TEMPAT;
+  const questions = customQuestions[type];
+
+  if (badgeEl) {
+    badgeEl.innerText = `${questions.length} / ${maxLimit} Pertanyaan`;
+  }
+
+  if (!listEl) return;
+  listEl.innerHTML = "";
+
+  questions.forEach((qText, idx) => {
+    const item = document.createElement("div");
+    item.className = "flex items-center justify-between gap-2 p-2.5 bg-white border border-slate-200 rounded-xl shadow-xs transition";
+    item.id = `q-item-${type}-${idx}`;
+
+    // Mode Normal Teks
+    item.innerHTML = `
+      <div class="flex items-center gap-2.5 flex-1 min-w-0">
+        <span class="w-6 h-6 rounded-lg bg-orange-100 text-orange-700 font-extrabold text-xs flex items-center justify-center flex-shrink-0">${hurufUrut(idx)}</span>
+        <span class="text-xs font-semibold text-slate-800 truncate question-display-text" title="${qText}">${qText}</span>
+      </div>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <button type="button" class="btn-edit-q p-1.5 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition" title="Edit Pertanyaan">✏️</button>
+        <button type="button" class="btn-del-q p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Hapus Pertanyaan">🗑️</button>
+      </div>
+    `;
+
+    // Tombol Edit (Opsi A: Baris berubah menjadi input inline)
+    const btnEdit = item.querySelector(".btn-edit-q");
+    btnEdit.onclick = () => {
+      item.innerHTML = `
+        <div class="flex items-center gap-2 flex-1 w-full">
+          <span class="w-6 h-6 rounded-lg bg-orange-100 text-orange-700 font-extrabold text-xs flex items-center justify-center flex-shrink-0">${hurufUrut(idx)}</span>
+          <input type="text" class="input-inline-edit flex-1 text-xs px-2.5 py-1.5 border border-orange-400 rounded-lg outline-none focus:ring-1 focus:ring-orange-500 bg-white font-medium" value="${qText}">
+          <button type="button" class="btn-save-inline text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-2.5 py-1.5 rounded-lg transition" title="Simpan">✓</button>
+          <button type="button" class="btn-cancel-inline text-xs font-bold text-slate-500 hover:bg-slate-100 px-2 py-1.5 rounded-lg transition" title="Batal">✕</button>
+        </div>
+      `;
+
+      const input = item.querySelector(".input-inline-edit");
+      input.focus();
+      input.select();
+
+      const save = () => {
+        const val = input.value.trim();
+        if (val) {
+          customQuestions[type][idx] = val;
+          renderQuestionListUI(type);
+        } else {
+          showToast("Teks pertanyaan tidak boleh kosong!", "warning", "Perhatian");
+        }
+      };
+
+      item.querySelector(".btn-save-inline").onclick = save;
+      item.querySelector(".btn-cancel-inline").onclick = () => renderQuestionListUI(type);
+      input.onkeydown = (e) => {
+        if (e.key === "Enter") { e.preventDefault(); save(); }
+        if (e.key === "Escape") { e.preventDefault(); renderQuestionListUI(type); }
+      };
+    };
+
+    // Tombol Hapus
+    const btnDel = item.querySelector(".btn-del-q");
+    btnDel.onclick = () => {
+      if (customQuestions[type].length <= 1) {
+        showToast("Minimal harus menyisakan 1 pertanyaan!", "warning", "Tidak Bisa Dihapus");
+        return;
+      }
+      customQuestions[type].splice(idx, 1);
+      renderQuestionListUI(type);
+    };
+
+    listEl.appendChild(item);
+  });
+}
+
+function setupQuestionBuilder() {
+  // Toggle Mode Mutu: Standar vs Custom
+  const radMutuStandar = document.getElementById("mode-mutu-standar");
+  const radMutuCustom = document.getElementById("mode-mutu-custom");
+  const boxCustomMutu = document.getElementById("container-custom-mutu");
+
+  const updateMutuView = () => {
+    if (radMutuCustom && radMutuCustom.checked) {
+      if (boxCustomMutu) boxCustomMutu.classList.remove("hidden");
+      renderQuestionListUI("mutu");
+    } else {
+      if (boxCustomMutu) boxCustomMutu.classList.add("hidden");
+    }
+  };
+  if (radMutuStandar) radMutuStandar.onchange = updateMutuView;
+  if (radMutuCustom) radMutuCustom.onchange = updateMutuView;
+
+  // Tombol Tambah Mutu
+  const btnTambahMutu = document.getElementById("btn-tambah-mutu");
+  if (btnTambahMutu) {
+    btnTambahMutu.onclick = () => {
+      if (customQuestions.mutu.length >= MAX_Q_MUTU) {
+        showToast(`Maksimal ${MAX_Q_MUTU} pertanyaan untuk Mutu Kegiatan.`, "warning", "Batas Maksimal");
+        return;
+      }
+      const newIdx = customQuestions.mutu.length;
+      customQuestions.mutu.push(`Pertanyaan Mutu Baru ${hurufUrut(newIdx)}`);
+      renderQuestionListUI("mutu");
+      // Auto trigger edit pada item baru
+      setTimeout(() => {
+        const newItem = document.getElementById(`q-item-mutu-${newIdx}`);
+        if (newItem) {
+          const editBtn = newItem.querySelector(".btn-edit-q");
+          if (editBtn) editBtn.click();
+        }
+      }, 50);
+    };
+  }
+
+  // Tombol Reset Mutu
+  const btnResetMutu = document.getElementById("btn-reset-mutu");
+  if (btnResetMutu) {
+    btnResetMutu.onclick = () => {
+      customQuestions.mutu = [...DEFAULT_QUESTIONS.mutu];
+      renderQuestionListUI("mutu");
+      showToast("Pertanyaan Mutu dikembalikan ke standar.", "info", "Dipulihkan");
+    };
+  }
+
+  // Toggle Tempat Acara ON/OFF
+  const chkLokasi = document.getElementById("create-is-lokasi");
+  const boxPengaturanTempat = document.getElementById("box-pengaturan-tempat");
+
+  if (chkLokasi) {
+    chkLokasi.onchange = () => {
+      if (chkLokasi.checked) {
+        if (boxPengaturanTempat) boxPengaturanTempat.classList.remove("hidden");
+        updateTempatView();
+      } else {
+        if (boxPengaturanTempat) boxPengaturanTempat.classList.add("hidden");
+      }
+    };
+  }
+
+  // Toggle Mode Tempat: Standar vs Custom
+  const radTempatStandar = document.getElementById("mode-tempat-standar");
+  const radTempatCustom = document.getElementById("mode-tempat-custom");
+  const boxCustomTempat = document.getElementById("container-custom-tempat");
+
+  const updateTempatView = () => {
+    if (radTempatCustom && radTempatCustom.checked) {
+      if (boxCustomTempat) boxCustomTempat.classList.remove("hidden");
+      renderQuestionListUI("tempat");
+    } else {
+      if (boxCustomTempat) boxCustomTempat.classList.add("hidden");
+    }
+  };
+  if (radTempatStandar) radTempatStandar.onchange = updateTempatView;
+  if (radTempatCustom) radTempatCustom.onchange = updateTempatView;
+
+  // Tombol Tambah Tempat
+  const btnTambahTempat = document.getElementById("btn-tambah-tempat");
+  if (btnTambahTempat) {
+    btnTambahTempat.onclick = () => {
+      if (customQuestions.tempat.length >= MAX_Q_TEMPAT) {
+        showToast(`Maksimal ${MAX_Q_TEMPAT} pertanyaan untuk Tempat Acara.`, "warning", "Batas Maksimal");
+        return;
+      }
+      const newIdx = customQuestions.tempat.length;
+      customQuestions.tempat.push(`Pertanyaan Tempat Baru ${hurufUrut(newIdx)}`);
+      renderQuestionListUI("tempat");
+      setTimeout(() => {
+        const newItem = document.getElementById(`q-item-tempat-${newIdx}`);
+        if (newItem) {
+          const editBtn = newItem.querySelector(".btn-edit-q");
+          if (editBtn) editBtn.click();
+        }
+      }, 50);
+    };
+  }
+
+  // Tombol Reset Tempat
+  const btnResetTempat = document.getElementById("btn-reset-tempat");
+  if (btnResetTempat) {
+    btnResetTempat.onclick = () => {
+      customQuestions.tempat = [...DEFAULT_QUESTIONS.tempat];
+      renderQuestionListUI("tempat");
+      showToast("Pertanyaan Tempat dikembalikan ke standar.", "info", "Dipulihkan");
+    };
+  }
+}
+
+/**
  * Event Listeners Dashboard
  */
 function setupEventListeners() {
+  // Setup Question Builder
+  setupQuestionBuilder();
+
   // Form Buat Kegiatan Baru
   const formCreate = document.getElementById("form-create-event");
   if (formCreate) {
     formCreate.onsubmit = async (e) => {
       e.preventDefault();
+
+      const isLokasi = document.getElementById("create-is-lokasi").checked;
+      const isCustomMutu = document.getElementById("mode-mutu-custom") && document.getElementById("mode-mutu-custom").checked;
+      const isCustomTempat = document.getElementById("mode-tempat-custom") && document.getElementById("mode-tempat-custom").checked;
+
+      const finalMutu = isCustomMutu ? customQuestions.mutu : DEFAULT_QUESTIONS.mutu;
+      const finalTempat = isLokasi ? (isCustomTempat ? customQuestions.tempat : DEFAULT_QUESTIONS.tempat) : [];
 
       const btn = document.getElementById("btn-submit-create-event");
       btn.disabled = true;
@@ -233,7 +465,11 @@ function setupEventListeners() {
         nama_kegiatan: document.getElementById("create-nama-kegiatan").value.trim(),
         tanggal: document.getElementById("create-tanggal").value,
         tempat: document.getElementById("create-tempat").value.trim(),
-        is_lokasi_active: document.getElementById("create-is-lokasi").checked
+        is_lokasi_active: isLokasi,
+        pertanyaan: {
+          mutu: finalMutu,
+          tempat: finalTempat
+        }
       };
 
       try {
@@ -246,6 +482,11 @@ function setupEventListeners() {
 
         if (result.status === "success") {
           showToast("Kegiatan resmi dibuka! Formulir responden kini aktif.", "success", "Berhasil");
+          // Reset form dan state
+          formCreate.reset();
+          customQuestions.mutu = [...DEFAULT_QUESTIONS.mutu];
+          customQuestions.tempat = [...DEFAULT_QUESTIONS.tempat];
+          setupQuestionBuilder();
           loadDashboardData();
         } else {
           showToast(result.message || "Gagal membuka kegiatan.", "error", "Gagal");

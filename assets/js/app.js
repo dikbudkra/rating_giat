@@ -84,6 +84,9 @@ function renderActiveEvent(event) {
     }
   }
 
+  // Render pertanyaan dinamis (mutu & tempat) sesuai konfigurasi kegiatan aktif
+  renderDynamicQuestions(event);
+
   document.getElementById("view-standby").classList.add("hidden");
   document.getElementById("view-form").classList.remove("hidden");
   document.getElementById("view-success").classList.add("hidden");
@@ -119,9 +122,87 @@ function renderAlreadySubmittedView(event, savedData) {
 }
 
 /**
+ * Generator Pertanyaan Dinamis (Mutu & Tempat Acara)
+ */
+const DEFAULT_PERTANYAAN = {
+  mutu: [
+    "Kualitas Narasumber / Fasilitator",
+    "Materi & Kemanfaatan",
+    "Pelayanan & Penyelenggaraan Panitia",
+    "Kepuasan Menyeluruh (Overall)"
+  ],
+  tempat: [
+    "Fasilitas Tempat Acara",
+    "Pelayanan & Konsumsi Tempat"
+  ]
+};
+
+function getActivePertanyaan(event) {
+  const p = (event && event.pertanyaan) ? event.pertanyaan : {};
+  const mutu = (Array.isArray(p.mutu) && p.mutu.length > 0) ? p.mutu : DEFAULT_PERTANYAAN.mutu;
+  const tempat = (Array.isArray(p.tempat) && p.tempat.length > 0) ? p.tempat : DEFAULT_PERTANYAAN.tempat;
+  return { mutu, tempat };
+}
+
+function hurufUrut(idx) {
+  return String.fromCharCode(65 + idx); // 0 -> A, 1 -> B, dst.
+}
+
+function renderQuestionBlock(questionText, idx, prefix) {
+  const labelHuruf = hurufUrut(idx);
+  const radioName = `nilai_${prefix}_${idx}`;
+  const gridId = `grid-${prefix}-${idx}`;
+  const catId = `catatan-${prefix}-${idx}`;
+
+  let radioPills = "";
+  for (let val = 1; val <= 10; val++) {
+    const radioId = `${prefix}-${idx}-${val}`;
+    radioPills += `
+      <input type="radio" name="${radioName}" id="${radioId}" value="${val}" class="rating-pill-input sr-only">
+      <label for="${radioId}" class="rating-pill-label">${val}</label>
+    `;
+  }
+
+  return `
+    <div class="space-y-3 pt-5 first:pt-0 border-t first:border-t-0 border-slate-100">
+      <label class="block text-sm font-bold text-slate-800 leading-snug">
+        ${labelHuruf}. ${questionText} <span class="text-red-500 font-bold">*</span>
+      </label>
+      <div id="${gridId}" class="rating-pills-grid transition">
+        ${radioPills}
+      </div>
+      <div class="mt-3">
+        <label for="${catId}" class="block text-xs font-bold text-slate-700 mb-1">
+          Alasan / Catatan Penilaian <span class="text-red-500 font-bold">*</span>
+        </label>
+        <textarea id="${catId}" rows="3" placeholder="Tuliskan alasan / catatan penilaian Anda (wajib diisi)..." class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-slate-700 transition"></textarea>
+      </div>
+    </div>
+  `;
+}
+
+function renderDynamicQuestions(event) {
+  const { mutu, tempat } = getActivePertanyaan(event);
+
+  // Render Mutu Kegiatan
+  const containerMutu = document.getElementById("container-pertanyaan-mutu");
+  if (containerMutu) {
+    containerMutu.innerHTML = mutu.map((q, idx) => renderQuestionBlock(q, idx, "mutu")).join("");
+  }
+
+  // Render Tempat Acara (jika aktif)
+  const containerTempat = document.getElementById("container-pertanyaan-tempat");
+  if (containerTempat && event.is_lokasi_active) {
+    containerTempat.innerHTML = tempat.map((q, idx) => renderQuestionBlock(q, idx, "tempat")).join("");
+  }
+}
+
+/**
  * Event Listener & Validasi Form
  */
 function setupFormListeners(event) {
+  const { mutu, tempat } = getActivePertanyaan(event);
+
   // Toggle Identitas (Data vs Anonymous)
   const modeData = document.getElementById("mode-identitas-data");
   const modeAnon = document.getElementById("mode-identitas-anon");
@@ -208,87 +289,59 @@ function setupFormListeners(event) {
       return el ? el.value : null;
     };
 
-    // 2. Validasi Aspek A: Kualitas Narasumber (Nilai & Catatan)
-    const narasumber = getRadioVal("nilai_narasumber");
-    if (!narasumber) {
-      markRadioInvalid("nilai_narasumber", "grid-narasumber", "Harap pilih nilai (1 - 10) untuk Kualitas Narasumber / Fasilitator.");
-      return;
-    }
-    const catNaraEl = document.getElementById("catatan-narasumber");
-    if (!catNaraEl.value.trim()) {
-      markInvalid(catNaraEl, "Harap isi penjelasan / catatan penilaian Narasumber.");
-      return;
+    // 2. Validasi Pertanyaan Mutu Kegiatan Dinamis
+    const nilaiMutu = [];
+    const catatanMutu = [];
+    for (let i = 0; i < mutu.length; i++) {
+      const radioName = `nilai_mutu_${i}`;
+      const gridId = `grid-mutu-${i}`;
+      const catId = `catatan-mutu-${i}`;
+      const labelHuruf = hurufUrut(i);
+
+      const val = getRadioVal(radioName);
+      if (!val) {
+        markRadioInvalid(radioName, gridId, `Harap pilih nilai (1 - 10) untuk poin ${labelHuruf} (${mutu[i]}).`);
+        return;
+      }
+      nilaiMutu.push(parseInt(val, 10));
+
+      const catEl = document.getElementById(catId);
+      const catVal = catEl ? catEl.value.trim() : "";
+      if (!catVal) {
+        markInvalid(catEl, `Harap isi alasan / catatan penilaian untuk poin ${labelHuruf}.`);
+        return;
+      }
+      catatanMutu.push(catVal);
     }
 
-    // 3. Validasi Aspek B: Materi & Kemanfaatan (Nilai & Catatan)
-    const materi = getRadioVal("nilai_materi");
-    if (!materi) {
-      markRadioInvalid("nilai_materi", "grid-materi", "Harap pilih nilai (1 - 10) untuk Materi & Kemanfaatan.");
-      return;
-    }
-    const catMatEl = document.getElementById("catatan-materi");
-    if (!catMatEl.value.trim()) {
-      markInvalid(catMatEl, "Harap isi penjelasan / catatan penilaian Materi.");
-      return;
-    }
-
-    // 4. Validasi Aspek C: Penyelenggaraan Panitia (Nilai & Catatan)
-    const panitia = getRadioVal("nilai_fasilitas_panitia");
-    if (!panitia) {
-      markRadioInvalid("nilai_fasilitas_panitia", "grid-panitia", "Harap pilih nilai (1 - 10) untuk Pelayanan & Penyelenggaraan Panitia.");
-      return;
-    }
-    const catPanEl = document.getElementById("catatan-panitia");
-    if (!catPanEl.value.trim()) {
-      markInvalid(catPanEl, "Harap isi penjelasan / catatan penilaian Panitia.");
-      return;
-    }
-
-    // 5. Validasi Aspek D: Kepuasan Menyeluruh (Nilai & Catatan)
-    const kepuasan = getRadioVal("nilai_kepuasan");
-    if (!kepuasan) {
-      markRadioInvalid("nilai_kepuasan", "grid-kepuasan", "Harap pilih nilai (1 - 10) untuk Kepuasan Menyeluruh (Overall).");
-      return;
-    }
-    const catKepEl = document.getElementById("catatan-kepuasan");
-    if (!catKepEl.value.trim()) {
-      markInvalid(catKepEl, "Harap isi penjelasan / catatan Kepuasan Menyeluruh.");
-      return;
-    }
-
-    // 6. Validasi Tempat Acara (Jika Aktif)
-    let tempatFas = null;
-    let tempatPel = null;
-    let catTmpFasVal = "";
-    let catTmpPelVal = "";
-
+    // 3. Validasi Pertanyaan Tempat Acara Dinamis (Jika Aktif)
+    const nilaiTempat = [];
+    const catatanTempat = [];
     if (event.is_lokasi_active) {
-      tempatFas = getRadioVal("nilai_tempat_fasilitas");
-      if (!tempatFas) {
-        markRadioInvalid("nilai_tempat_fasilitas", "grid-tempat-fasilitas", "Harap pilih nilai (1 - 10) untuk Fasilitas Tempat Acara.");
-        return;
-      }
-      const catTmpFasEl = document.getElementById("catatan-tempat-fasilitas");
-      if (!catTmpFasEl.value.trim()) {
-        markInvalid(catTmpFasEl, "Harap isi penjelasan / catatan Fasilitas Tempat Acara.");
-        return;
-      }
-      catTmpFasVal = catTmpFasEl.value.trim();
+      for (let j = 0; j < tempat.length; j++) {
+        const radioName = `nilai_tempat_${j}`;
+        const gridId = `grid-tempat-${j}`;
+        const catId = `catatan-tempat-${j}`;
+        const labelHuruf = hurufUrut(j);
 
-      tempatPel = getRadioVal("nilai_tempat_pelayanan");
-      if (!tempatPel) {
-        markRadioInvalid("nilai_tempat_pelayanan", "grid-tempat-pelayanan", "Harap pilih nilai (1 - 10) untuk Pelayanan Tempat.");
-        return;
+        const val = getRadioVal(radioName);
+        if (!val) {
+          markRadioInvalid(radioName, gridId, `Harap pilih nilai (1 - 10) untuk Fasilitas Tempat poin ${labelHuruf} (${tempat[j]}).`);
+          return;
+        }
+        nilaiTempat.push(parseInt(val, 10));
+
+        const catEl = document.getElementById(catId);
+        const catVal = catEl ? catEl.value.trim() : "";
+        if (!catVal) {
+          markInvalid(catEl, `Harap isi alasan / catatan fasilitas tempat untuk poin ${labelHuruf}.`);
+          return;
+        }
+        catatanTempat.push(catVal);
       }
-      const catTmpPelEl = document.getElementById("catatan-tempat-pelayanan");
-      if (!catTmpPelEl.value.trim()) {
-        markInvalid(catTmpPelEl, "Harap isi penjelasan / catatan Pelayanan & Konsumsi Tempat.");
-        return;
-      }
-      catTmpPelVal = catTmpPelEl.value.trim();
     }
 
-    // 7. Validasi Masukan & Rekomendasi
+    // 4. Validasi Masukan & Rekomendasi
     const saranEl = document.getElementById("input-saran");
     if (!saranEl.value.trim()) {
       markInvalid(saranEl, "Harap isi Saran & Masukan untuk Panitia / Narasumber.");
@@ -308,15 +361,15 @@ function setupFormListeners(event) {
     submitBtn.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Mengirimkan Penilaian...`;
     showLoader("Mengirimkan penilaian Anda ke server...");
 
-    // Format catatan penjelasan terstruktur
+    // Format catatan penjelasan terstruktur (untuk kompatibilitas laporan)
     let catatanList = [];
-    catatanList.push(`[Narasumber: ${catNaraEl.value.trim()}]`);
-    catatanList.push(`[Materi: ${catMatEl.value.trim()}]`);
-    catatanList.push(`[Panitia: ${catPanEl.value.trim()}]`);
-    catatanList.push(`[Kepuasan: ${catKepEl.value.trim()}]`);
+    mutu.forEach((q, i) => {
+      catatanList.push(`[${hurufUrut(i)}. ${q}: ${catatanMutu[i]}]`);
+    });
     if (event.is_lokasi_active) {
-      catatanList.push(`[Fasilitas Tempat Acara: ${catTmpFasVal}]`);
-      catatanList.push(`[Pelayanan & Konsumsi: ${catTmpPelVal}]`);
+      tempat.forEach((q, j) => {
+        catatanList.push(`[Tempat ${hurufUrut(j)}. ${q}: ${catatanTempat[j]}]`);
+      });
     }
 
     const fullSaran = [catatanList.join("\n"), saranEl.value.trim()].join("\n\n");
@@ -328,12 +381,10 @@ function setupFormListeners(event) {
       nama: document.getElementById("input-nama").value.trim(),
       asal_sekolah: document.getElementById("input-sekolah").value.trim(),
       jabatan: document.getElementById("input-jabatan").value.trim(),
-      nilai_narasumber: narasumber,
-      nilai_materi: materi,
-      nilai_fasilitas_panitia: panitia,
-      nilai_kepuasan: kepuasan,
-      nilai_tempat_fasilitas: tempatFas,
-      nilai_tempat_pelayanan: tempatPel,
+      nilai_mutu: nilaiMutu,
+      catatan_mutu: catatanMutu,
+      nilai_tempat: nilaiTempat,
+      catatan_tempat: catatanTempat,
       saran_masukan: fullSaran,
       rekomendasi_topik: rekomendasiEl.value.trim()
     };
