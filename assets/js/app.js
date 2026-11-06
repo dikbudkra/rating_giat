@@ -300,7 +300,7 @@ function setupFormListeners(event) {
       if (inputNama) inputNama.required = true;
       if (inputJabatan) inputJabatan.required = true;
     } else {
-      // Default: Guru / Tendik SMP
+      // Default: SMP
       if (dataFields) dataFields.classList.remove("hidden");
       if (anonNotice) anonNotice.classList.add("hidden");
       if (labelAsalSekolah) {
