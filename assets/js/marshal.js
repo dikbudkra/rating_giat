@@ -6,6 +6,52 @@ let marshalPassword = sessionStorage.getItem("marshal_token") || "";
 let currentDashboardData = null;
 let latestAiSummary = "";
 
+/**
+ * Pengaturan Auto-Logout & Logout Manual (30 Menit Tidak Aktif)
+ */
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 Menit
+let idleLogoutTimer = null;
+
+function handleMarshalLogout(isAuto = false) {
+  if (idleLogoutTimer) clearTimeout(idleLogoutTimer);
+  sessionStorage.removeItem("marshal_token");
+  marshalPassword = "";
+
+  if (isAuto) {
+    alert("Sesi Anda telah berakhir karena tidak ada aktivitas selama 30 menit. Anda akan dialihkan ke halaman utama.");
+  } else {
+    showToast("Anda telah keluar dari Panel Marshal.", "info", "Logout Sukses");
+  }
+
+  setTimeout(() => {
+    window.location.href = "../";
+  }, isAuto ? 100 : 400);
+}
+window.handleMarshalLogout = handleMarshalLogout;
+
+function resetIdleTimer() {
+  if (!marshalPassword) return;
+  if (idleLogoutTimer) clearTimeout(idleLogoutTimer);
+  idleLogoutTimer = setTimeout(() => {
+    handleMarshalLogout(true);
+  }, IDLE_TIMEOUT_MS);
+}
+
+function startIdleAutoLogout() {
+  resetIdleTimer();
+  const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
+  let throttled = false;
+  events.forEach(evt => {
+    window.addEventListener(evt, () => {
+      if (!throttled) {
+        throttled = true;
+        resetIdleTimer();
+        setTimeout(() => { throttled = false; }, 2000);
+      }
+    }, { passive: true });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initMarshal();
 });
@@ -20,6 +66,7 @@ function initMarshal() {
     if (!marshalPassword) {
       showLoginModal();
     } else {
+      startIdleAutoLogout();
       loadDashboardData();
     }
   }, 4000);
@@ -71,6 +118,7 @@ function handleLoginSubmit() {
         document.getElementById("modal-login").classList.add("hidden");
         errorText.classList.add("hidden");
         showToast("Login berhasil! Menyiapkan panel kendali...", "success", "Selamat Datang");
+        startIdleAutoLogout();
         loadDashboardData();
       } else {
         errorText.innerText = "Password salah! Silakan coba lagi.";
