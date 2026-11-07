@@ -131,6 +131,22 @@ function setupSecretTestingReset() {
       if (currentActiveEvent) {
         const localKey = `rating_giat_submitted_${currentActiveEvent.id_kegiatan}`;
         localStorage.removeItem(localKey);
+
+        // Reset form & tombol submit ke status awal
+        const form = document.getElementById("rating-form");
+        if (form) form.reset();
+
+        const submitBtn = document.getElementById("btn-submit-rating");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<span>Kirim Penilaian Saya</span> <span>🚀</span>`;
+        }
+
+        // Hapus penanda error validasi jika ada
+        document.querySelectorAll(".border-red-500, .ring-red-200, .ring-red-500").forEach(el => {
+          el.classList.remove("border-red-500", "ring-2", "ring-red-200", "ring-red-500", "p-1.5");
+        });
+
         showToast("🔓 Mode Pengujian Panitia Aktif: Kunci form di perangkat ini berhasil dibuka kembali!", "success", "Reset Uji Coba Berhasil");
         renderActiveEvent(currentActiveEvent);
       } else {
@@ -190,6 +206,13 @@ function renderActiveEvent(event) {
   document.getElementById("view-form").classList.remove("hidden");
   document.getElementById("view-success").classList.add("hidden");
   document.getElementById("view-already-submitted").classList.add("hidden");
+
+  // Pastikan tombol submit selalu dalam status normal dan siap klik
+  const submitBtn = document.getElementById("btn-submit-rating");
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `<span>Kirim Penilaian Saya</span> <span>🚀</span>`;
+  }
 
   setupFormListeners(event);
 }
@@ -622,6 +645,11 @@ function setupFormListeners(event) {
           is_lokasi_active: result.is_lokasi_active
         };
         localStorage.setItem(`rating_giat_submitted_${event.id_kegiatan}`, JSON.stringify(submissionData));
+
+        // Kembalikan tombol ke kondisi normal dan bersihkan form
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText || `<span>Kirim Penilaian Saya</span> <span>🚀</span>`;
+        form.reset();
 
         renderSuccessView(event, result);
       } else {
