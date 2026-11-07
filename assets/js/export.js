@@ -103,14 +103,17 @@ window.ExportEngine = {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(126, 34, 206); // Ungu Gemini
-      doc.text("✦ Rangkuman Eksekutif Asisten Data Kegiatan (Gemini AI)", 14, currentY);
+      doc.text("Rangkuman Penilaian Kegiatan", 14, currentY);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
 
-      const splitSummary = doc.splitTextToSize(aiSummary, 180);
-      doc.text(splitSummary, 14, currentY + 5);
+      const splitSummary = doc.splitTextToSize(aiSummary, 182);
+      doc.text(splitSummary, 14, currentY + 5, {
+        maxWidth: 182,
+        align: "justify"
+      });
 
       currentY = currentY + 7 + (splitSummary.length * 4.2);
     }
@@ -228,7 +231,7 @@ window.ExportEngine = {
           hr { border: 0; border-top: 1.5px solid #C44300; margin: 15px 0; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; }
           th { background-color: #C44300; color: #ffffff; padding: 8px; border: 1px solid #bbb; text-align: left; }
-          .ai-box { background: #FAF5FF; border-left: 4px solid #9333EA; padding: 10px; margin: 15px 0; font-size: 10pt; }
+          .ai-box { background: #FAF5FF; border-left: 4px solid #9333EA; padding: 10px; margin: 15px 0; font-size: 10pt; text-align: justify; }
         </style>
       </head>
       <body>
@@ -264,8 +267,8 @@ window.ExportEngine = {
 
         ${aiSummary ? `
         <div class="ai-box">
-          <h4 style="color: #6B21A8; margin-top: 0;">✦ Rangkuman Eksekutif Asisten AI Gemini</h4>
-          <p>${aiSummary.replace(/\n/g, "<br/>")}</p>
+          <h4 style="color: #6B21A8; margin-top: 0;">Rangkuman Penilaian Kegiatan</h4>
+          <p style="text-align: justify; margin-bottom: 0;">${aiSummary.replace(/\n/g, "<br/>")}</p>
         </div>` : ""}
 
         <h3>${aspectRowsHtml ? "C" : "B"}. Rekapitulasi Masukan dan Umpan Balik Peserta</h3>
