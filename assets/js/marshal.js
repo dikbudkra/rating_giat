@@ -592,11 +592,11 @@ function setupEventListeners() {
     };
   }
 
-  // Helper memastikan Rangkuman Eksekutif Gemini AI otomatis dibuat sebelum ekspor jika belum ada
+  // Helper memastikan Rangkuman Penilaian Jemprot AI otomatis dibuat sebelum ekspor jika belum ada
   async function ensureAiSummaryBeforeExport() {
     if (!latestAiSummary && currentDashboardData && currentDashboardData.metrics && currentDashboardData.metrics.total_responden > 0) {
       try {
-        showLoader("Menyusun Rangkuman Eksekutif resmi via Gemini AI...");
+        showLoader("Menyusun Rangkuman Penilaian resmi via Jemprot AI...");
         const res = await fetch(CONFIG.GAS_WEB_APP_URL, {
           method: "POST",
           body: JSON.stringify({
@@ -610,7 +610,7 @@ function setupEventListeners() {
           latestAiSummary = result.answer;
         }
       } catch (e) {
-        console.warn("Gagal auto-generate Gemini AI summary:", e);
+        console.warn("Gagal auto-generate Jemprot AI summary:", e);
       } finally {
         hideLoader();
       }
@@ -695,7 +695,7 @@ function setupEventListeners() {
 }
 
 /**
- * Logika Asisten Data Gemini AI (Sesuai Referensi Pengguna)
+ * Logika Asisten Data Jemprot AI (Sesuai Referensi Pengguna)
  */
 function getGeminiWelcomeCardHtml() {
   return `
@@ -882,7 +882,7 @@ async function sendPromptToGemini(questionText) {
         </div>
         <div class="bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-none p-4 sm:p-5 max-w-xl text-xs sm:text-sm shadow-xs leading-relaxed space-y-1.5 flex-1">
           <div class="font-bold text-purple-700 text-xs flex items-center gap-1.5 mb-1">
-            <span>✦</span> Asisten Gemini AI
+            <span>✦</span> Asisten Jemprot AI
           </div>
           <div class="prose prose-sm text-slate-800 leading-relaxed text-xs sm:text-sm">
             ${formatMarkdown(result.answer)}
@@ -911,7 +911,7 @@ async function sendPromptToGemini(questionText) {
     botErr.className = "flex items-start gap-3 mb-3";
     botErr.innerHTML = `
       <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">⚠️</div>
-      <div class="bg-red-50 text-red-600 rounded-xl px-4 py-2 text-xs sm:text-sm">Gagal terhubung ke Asisten Gemini.</div>
+      <div class="bg-red-50 text-red-600 rounded-xl px-4 py-2 text-xs sm:text-sm">Gagal terhubung ke Asisten Jemprot AI.</div>
     `;
     chatLog.appendChild(botErr);
   }

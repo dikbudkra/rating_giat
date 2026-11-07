@@ -98,7 +98,7 @@ window.ExportEngine = {
       currentY = doc.lastAutoTable.finalY + 6;
     }
 
-    // Bagian Rangkuman Asisten AI Gemini (Jika Ada)
+    // Bagian Rangkuman Asisten Jemprot AI (Jika Ada)
     if (aiSummary && aiSummary.trim() !== "") {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);

@@ -10,14 +10,14 @@ Aplikasi web modern evaluasi dan penilaian kegiatan kedinasan multi-event untuk 
 Peniliaian Kegiatan SMP/
 ├── index.html              # Halaman Publik Responden (Splash Screen, Standby, Form, Dual Stars)
 ├── marshal/
-│   └── index.html          # Panel Admin Marshal (Live Counter, Buka/Tutup, Gemini AI, Export)
+│   └── index.html          # Panel Admin Marshal (Live Counter, Buka/Tutup, Jemprot AI, Export)
 ├── assets/
 │   ├── css/
 │   │   └── style.css       # Styling tema Terracotta Kedinasan & animasi
 │   └── js/
 │       ├── config.js       # Konfigurasi URL Google Apps Script Web App
 │       ├── app.js          # Logika responden & anti-spam mutlak
-│       ├── marshal.js      # Logika admin & chat widget Gemini AI
+│       ├── marshal.js      # Logika admin & chat widget Jemprot AI
 │       └── export.js       # Generator laporan resmi PDF & DOCX
 ├── backend_gas/
 │   └── Code.gs             # Backend Google Apps Script (Spreadsheet & Gemini Proxy)
