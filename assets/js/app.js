@@ -17,8 +17,14 @@ async function initApp() {
   let fetchError = null;
 
   try {
-    // 1. Ambil status kegiatan aktif dari Google Apps Script
-    const response = await fetch(`${CONFIG.GAS_WEB_APP_URL}?action=getActiveEvent`);
+    // 1. Ambil status kegiatan aktif dari Google Apps Script dengan Timeout 15 detik (ketahanan aula)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(`${CONFIG.GAS_WEB_APP_URL}?action=getActiveEvent`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
     data = await response.json();
   } catch (error) {
     console.error("Gagal memuat status kegiatan:", error);
@@ -38,7 +44,7 @@ async function initApp() {
     }
     renderActiveEvent(data.event);
   } else if (fetchError) {
-    renderStandbyView("Gagal terhubung ke server atau periksa koneksi internet.");
+    renderConnectionErrorView();
   } else {
     renderStandbyView();
   }
@@ -165,11 +171,43 @@ function renderStandbyView(customMessage) {
   document.getElementById("view-success").classList.add("hidden");
   document.getElementById("view-already-submitted").classList.add("hidden");
 
-  if (customMessage) {
-    const desc = document.getElementById("standby-desc");
-    if (desc) desc.innerText = customMessage;
+  const desc = document.getElementById("standby-desc");
+  if (desc) {
+    desc.innerText = customMessage || "Saat ini belum ada kegiatan penilaian yang sedang berlangsung. Halaman ini akan otomatis menampilkan formulir jika panitia telah membuka sesi kegiatan.";
   }
 }
+
+/**
+ * Tampilan Khusus Kendala Jaringan (Aula / Sinyal Lemah) dengan Tombol Coba Lagi
+ */
+function renderConnectionErrorView() {
+  document.getElementById("view-standby").classList.remove("hidden");
+  document.getElementById("view-form").classList.add("hidden");
+  document.getElementById("view-success").classList.add("hidden");
+  document.getElementById("view-already-submitted").classList.add("hidden");
+
+  const desc = document.getElementById("standby-desc");
+  if (desc) {
+    desc.innerHTML = `
+      <div class="space-y-3 py-1">
+        <p class="text-amber-800 font-bold text-xs sm:text-sm">Koneksi internet Anda sedang lambat atau terputus sejenak dari server.</p>
+        <button onclick="retryInitApp()" class="inline-flex items-center gap-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white text-xs font-black px-5 py-2.5 rounded-xl shadow-md transition transform active:scale-95 cursor-pointer">
+          <span>🔄</span>
+          <span>Coba Hubungkan Lagi</span>
+        </button>
+      </div>
+    `;
+  }
+}
+
+function retryInitApp() {
+  const desc = document.getElementById("standby-desc");
+  if (desc) {
+    desc.innerHTML = `<span class="inline-block animate-spin mr-1">🔄</span> Menghubungkan kembali ke server...`;
+  }
+  initApp();
+}
+window.retryInitApp = retryInitApp;
 
 /**
  * Tampilan Form Aktif
@@ -601,21 +639,6 @@ function setupFormListeners(event) {
     submitBtn.innerHTML = `<span class="inline-block animate-spin mr-2">🔄</span> Mengirimkan Penilaian...`;
     showLoader("Mengirimkan penilaian Anda ke server...");
 
-    // Format catatan penjelasan terstruktur (untuk kompatibilitas laporan)
-    let catatanList = [];
-    mutu.forEach((q, i) => {
-      const c = catatanMutu[i];
-      if (c) catatanList.push(`[${hurufUrut(i)}. ${q}: ${c}]`);
-    });
-    if (event.is_lokasi_active) {
-      tempat.forEach((q, j) => {
-        const c = catatanTempat[j];
-        if (c) catatanList.push(`[Tempat ${hurufUrut(j)}. ${q}: ${c}]`);
-      });
-    }
-
-    const fullSaran = [catatanList.join("\n"), saranEl.value.trim()].filter(Boolean).join("\n\n");
-
     const payload = {
       action: "submitRating",
       id_kegiatan: event.id_kegiatan,
@@ -627,7 +650,7 @@ function setupFormListeners(event) {
       catatan_mutu: catatanMutu,
       nilai_tempat: nilaiTempat,
       catatan_tempat: catatanTempat,
-      saran_masukan: fullSaran,
+      saran_masukan: saranEl.value.trim(),
       rekomendasi_topik: rekomendasiEl.value.trim()
     };
 

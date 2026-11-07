@@ -7,6 +7,66 @@ window.ExportEngine = {
   docxDownloaded: false,
 
   /**
+   * Helper format catatan evaluasi dan saran masukan agar bersih, rapi, dan mudah dibaca
+   */
+  formatFeedback(r) {
+    if (!r) return "-";
+    const items = [];
+
+    // 1. Catatan Evaluasi Penilaian (dari data terstruktur)
+    if (Array.isArray(r.nilai_mutu)) {
+      r.nilai_mutu.forEach((m, idx) => {
+        const c = (m.catatan || "").trim();
+        if (c) {
+          const huruf = String.fromCharCode(65 + idx);
+          items.push(`• Poin ${huruf} (${m.nilai}): ${c}`);
+        }
+      });
+    }
+    if (Array.isArray(r.nilai_tempat)) {
+      r.nilai_tempat.forEach((t, jdx) => {
+        const c = (t.catatan || "").trim();
+        if (c) {
+          const huruf = String.fromCharCode(65 + jdx);
+          items.push(`• Tempat ${huruf} (${t.nilai}): ${c}`);
+        }
+      });
+    }
+
+    // 2. Saran & Masukan Umum
+    let rawSaran = String(r.saran_murni || r.saran || "").trim();
+    let cleanSaran = rawSaran
+      .replace(/\[(?:Tempat\s+)?[A-Z]\.[^\]]+\][^\n\r]*/gi, "")
+      .replace(/^Saran:\s*/gim, "")
+      .replace(/[\n\r]+/g, " ")
+      .trim();
+
+    // Fallback jika data lama dan items masih kosong
+    if (items.length === 0 && rawSaran.includes("[")) {
+      const lines = rawSaran.split(/[\r\n]+/);
+      lines.forEach(line => {
+        const match = line.match(/\[([A-Z])\.[^=]+=\s*(\d+)\]\s*(.*)/i);
+        const matchTempat = line.match(/\[Tempat\s+([A-Z])\.[^=]+=\s*(\d+)\]\s*(.*)/i);
+        if (match) {
+          items.push(`• Poin ${match[1].toUpperCase()} (${match[2]}): ${match[3].trim()}`);
+        } else if (matchTempat) {
+          items.push(`• Tempat ${matchTempat[1].toUpperCase()} (${matchTempat[2]}): ${matchTempat[3].trim()}`);
+        }
+      });
+    }
+
+    if (cleanSaran && cleanSaran !== "-" && cleanSaran !== '""') {
+      if (items.length > 0) {
+        items.push(`• Saran: ${cleanSaran}`);
+      } else {
+        items.push(cleanSaran);
+      }
+    }
+
+    return items.length > 0 ? items.join("\n") : "-";
+  },
+
+  /**
    * Unduh Laporan PDF Resmi
    */
   async downloadPDF(dashboardData, aiSummary) {
@@ -129,7 +189,7 @@ window.ExportEngine = {
       r.mode === "ANONYMOUS" || r.mode === "RAHASIA" ? "(Anonim)" : r.nama,
       r.mode === "ANONYMOUS" || r.mode === "RAHASIA" ? "-" : r.sekolah,
       r.bintang_kegiatan + " ★",
-      r.saran || "-",
+      this.formatFeedback(r),
       r.rekomendasi || "-"
     ]);
 
@@ -207,13 +267,14 @@ window.ExportEngine = {
     let rowsHtml = "";
     responses.forEach((r, idx) => {
       const isAnon = (r.mode === "ANONYMOUS" || r.mode === "RAHASIA");
+      const cleanSaran = this.formatFeedback(r).replace(/\n/g, "<br/>");
       rowsHtml += `
         <tr>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
           <td style="border: 1px solid #ddd; padding: 6px;">${isAnon ? "<i>(Anonim)</i>" : r.nama}</td>
           <td style="border: 1px solid #ddd; padding: 6px;">${isAnon ? "-" : r.sekolah}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;"><b>${r.bintang_kegiatan} ★</b></td>
-          <td style="border: 1px solid #ddd; padding: 6px;">${r.saran || "-"}</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">${cleanSaran || "-"}</td>
           <td style="border: 1px solid #ddd; padding: 6px;">${r.rekomendasi || "-"}</td>
         </tr>
       `;

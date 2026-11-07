@@ -127,6 +127,14 @@ function doPost(e) {
       result = handleCloseAndArchiveEvent(postData);
     } else if (action === "askGemini") {
       result = handleAskGemini(postData);
+    } else if (action === "checkLogin") {
+      result = checkMarshalPassword(postData.password || "");
+    } else if (action === "getMarshalData") {
+      if (checkMarshalPassword(postData.password || "").authenticated) {
+        result = getMarshalDashboardData();
+      } else {
+        result = { status: "error", message: "Password Marshal salah" };
+      }
     }
 
     return respondJSON(result);
@@ -347,18 +355,30 @@ function parseResponRow(r, isBaru, pertanyaan) {
 }
 
 /**
- * Gabungan catatan per pertanyaan + saran (untuk tabel dashboard & laporan unduhan).
+ * Gabungan catatan per pertanyaan + saran (diformat bersih & rapi untuk tabel dashboard & laporan unduhan).
  */
 function buildSaranGabungan(p) {
   const lines = [];
   p.mutu.forEach((m, i) => {
-    if (m.catatan) lines.push("[" + hurufUrut(i) + ". " + m.pertanyaan + " = " + m.nilai + "] " + m.catatan);
+    if (m.catatan) lines.push("• Poin " + hurufUrut(i) + " (" + m.nilai + "): " + m.catatan);
   });
   p.tempat.forEach((t, j) => {
-    if (t.catatan) lines.push("[Tempat " + hurufUrut(j) + ". " + t.pertanyaan + " = " + t.nilai + "] " + t.catatan);
+    if (t.catatan) lines.push("• Tempat " + hurufUrut(j) + " (" + t.nilai + "): " + t.catatan);
   });
-  if (p.saran) lines.push((lines.length ? "\nSaran: " : "") + p.saran);
-  return lines.join("\n");
+  let cleanSaran = String(p.saran || "")
+    .replace(/\[(?:Tempat\s+)?[A-Z]\.[^\]]+\][^\n\r]*/gi, "")
+    .replace(/^Saran:\s*/gim, "")
+    .replace(/[\n\r]+/g, " ")
+    .trim();
+
+  if (cleanSaran && cleanSaran !== "-") {
+    if (lines.length > 0) {
+      lines.push("• Saran: " + cleanSaran);
+    } else {
+      lines.push(cleanSaran);
+    }
+  }
+  return lines.length ? lines.join("\n") : "-";
 }
 
 /**

@@ -102,8 +102,14 @@ function handleLoginSubmit() {
   }
   showLoader("Memverifikasi kata sandi Marshal...");
 
-  // Verifikasi ke GAS
-  fetch(`${CONFIG.GAS_WEB_APP_URL}?action=checkLogin&password=${encodeURIComponent(pwd)}`)
+  // Verifikasi ke GAS via POST (keamanan sandi terlindungi dalam payload)
+  fetch(CONFIG.GAS_WEB_APP_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "checkLogin",
+      password: pwd
+    })
+  })
     .then(res => res.json())
     .then(data => {
       hideLoader();
@@ -140,11 +146,17 @@ function handleLoginSubmit() {
 }
 
 /**
- * Muat Data Dashboard
+ * Muat Data Dashboard via POST
  */
 async function loadDashboardData() {
   try {
-    const res = await fetch(`${CONFIG.GAS_WEB_APP_URL}?action=getMarshalData&password=${encodeURIComponent(marshalPassword)}`);
+    const res = await fetch(CONFIG.GAS_WEB_APP_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "getMarshalData",
+        password: marshalPassword
+      })
+    });
     const data = await res.json();
 
     if (data.status === "error") {
@@ -232,6 +244,10 @@ function renderResponsesTable(responses) {
   responses.forEach((r, idx) => {
     const tr = document.createElement("tr");
     tr.className = "border-b border-slate-100 hover:bg-slate-50 transition text-sm";
+    const feedbackText = (window.ExportEngine && typeof window.ExportEngine.formatFeedback === "function")
+      ? window.ExportEngine.formatFeedback(r)
+      : (r.saran || "-");
+
     tr.innerHTML = `
       <td class="py-3 px-3 text-slate-500 font-semibold">${idx + 1}</td>
       <td class="py-3 px-3">
@@ -241,8 +257,8 @@ function renderResponsesTable(responses) {
       <td class="py-3 px-3">
         <span class="inline-flex items-center gap-1 font-bold text-amber-600">★ ${r.bintang_kegiatan}</span>
       </td>
-      <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${r.saran || '-'}">${r.saran || "-"}</td>
-      <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${r.rekomendasi || '-'}">${r.rekomendasi || "-"}</td>
+      <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${feedbackText.replace(/"/g, '&quot;')}">${feedbackText}</td>
+      <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${(r.rekomendasi || '-').replace(/"/g, '&quot;')}">${r.rekomendasi || "-"}</td>
     `;
     tbody.appendChild(tr);
   });

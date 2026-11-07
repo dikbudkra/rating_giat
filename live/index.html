@@ -498,8 +498,11 @@
     // Fetch data panggung utama
     async function fetchLiveDisplayData() {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         const url = `${CONFIG.GAS_WEB_APP_URL}?action=getLiveDisplayData`;
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data && data.status === "ACTIVE" && data.event) {
@@ -508,7 +511,7 @@
           renderStandbyStage();
         }
       } catch (err) {
-        console.error("Gagal mengambil data live stage:", err);
+        console.warn("Koneksi proyektor terganggu sesaat, mempertahankan data panggung:", err);
       }
     }
 
