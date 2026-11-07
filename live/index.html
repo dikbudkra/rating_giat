@@ -100,7 +100,7 @@
         transform: translateX(0%);
       }
       100% {
-        transform: translateX(-50%);
+        transform: translateX(-100%);
       }
     }
 
@@ -110,14 +110,17 @@
       overflow: hidden;
       white-space: nowrap;
       position: relative;
+      display: flex;
     }
-    .ticker-content {
+    .ticker-track {
       display: inline-flex;
       align-items: center;
+      flex-shrink: 0;
+      white-space: nowrap;
       animation: marqueeScroll var(--speed, 45s) linear infinite;
       will-change: transform;
     }
-    .ticker-content:hover {
+    .ticker-wrap:hover .ticker-track {
       animation-play-state: paused;
     }
 
@@ -348,9 +351,20 @@
         <span>SUARA PESERTA</span>
       </div>
 
-      <div class="ticker-wrap flex-1">
-        <div id="ticker-container" class="ticker-content flex items-center gap-10 text-xl sm:text-2xl font-semibold text-slate-100 tracking-wide">
-          <span class="text-slate-400 italic">Menunggu masukan dari peserta kegiatan...</span>
+      <div id="ticker-container" class="ticker-wrap flex-1 flex items-center overflow-hidden">
+        <div id="ticker-track-1" class="ticker-track flex items-center gap-10 text-xl sm:text-2xl font-semibold text-slate-100 tracking-wide pr-10">
+          <div class="inline-flex items-center gap-3">
+            <span class="text-amber-400 font-bold">INFO:</span>
+            <span class="text-slate-300 font-medium italic">"Menunggu masukan dari peserta kegiatan..."</span>
+            <span class="text-amber-500/50 mx-4 text-xl sm:text-2xl">✦</span>
+          </div>
+        </div>
+        <div id="ticker-track-2" class="ticker-track flex items-center gap-10 text-xl sm:text-2xl font-semibold text-slate-100 tracking-wide pr-10" aria-hidden="true">
+          <div class="inline-flex items-center gap-3">
+            <span class="text-amber-400 font-bold">INFO:</span>
+            <span class="text-slate-300 font-medium italic">"Menunggu masukan dari peserta kegiatan..."</span>
+            <span class="text-amber-500/50 mx-4 text-xl sm:text-2xl">✦</span>
+          </div>
         </div>
       </div>
     </div>
@@ -386,7 +400,7 @@
       <input 
         type="range" 
         id="slider-ticker-speed" 
-        min="20" 
+        min="5" 
         max="70" 
         value="45" 
         oninput="updateTickerSpeed(this.value)" 
@@ -598,6 +612,9 @@
     // State Saklar & Kecepatan Suara Peserta
     let isTickerEnabled = localStorage.getItem("live_ticker_enabled") !== "false";
     let tickerSpeed = parseInt(localStorage.getItem("live_ticker_speed") || "45", 10);
+    if (isNaN(tickerSpeed) || tickerSpeed < 5 || tickerSpeed > 70) {
+      tickerSpeed = 45;
+    }
     let lastRenderedFeedbackHash = "";
     let mouseIdleTimer = null;
 
@@ -658,13 +675,19 @@
 
     // Terapkan kecepatan running text
     function applyTickerSpeed(val) {
-      tickerSpeed = parseInt(val, 10) || 45;
+      const parsed = parseInt(val, 10);
+      tickerSpeed = !isNaN(parsed) ? Math.max(5, Math.min(70, parsed)) : 45;
       const container = document.getElementById("ticker-container");
+      const tracks = document.querySelectorAll(".ticker-track");
       const slider = document.getElementById("slider-ticker-speed");
       const valLabel = document.getElementById("val-ticker-speed");
+
       if (container) {
         container.style.setProperty("--speed", `${tickerSpeed}s`);
       }
+      tracks.forEach(track => {
+        track.style.setProperty("--speed", `${tickerSpeed}s`);
+      });
       if (slider) slider.value = tickerSpeed;
       if (valLabel) valLabel.innerText = `${tickerSpeed}s`;
     }
@@ -677,10 +700,9 @@
 
     // Render running ticker suara peserta dengan Smart Cache Polling
     function renderTickerFeedback(feedbacks) {
-      const tickerContainer = document.getElementById("ticker-container");
-      if (!tickerContainer) return;
-
-      tickerContainer.style.setProperty("--speed", `${tickerSpeed}s`);
+      const track1 = document.getElementById("ticker-track-1");
+      const track2 = document.getElementById("ticker-track-2");
+      if (!track1 || !track2) return;
 
       // Kondisi jika belum ada catatan masukan yang masuk
       if (!feedbacks || !feedbacks.length) {
@@ -694,7 +716,9 @@
               <span class="text-amber-500/50 mx-4 text-xl sm:text-2xl">✦</span>
             </div>
           `;
-          tickerContainer.innerHTML = emptyItem.repeat(4);
+          const baseContent = emptyItem.repeat(5);
+          track1.innerHTML = baseContent;
+          track2.innerHTML = baseContent;
         }
         return;
       }
@@ -721,9 +745,18 @@
         `;
       }).join("");
 
-      // Ulangi agar animasi seamless loop
-      const repeatTimes = feedbacks.length < 3 ? 4 : 2;
-      tickerContainer.innerHTML = itemsHTML.repeat(repeatTimes);
+      // Pastikan panjang tiap track cukup lebar untuk layar proyektor
+      let baseHTML = itemsHTML;
+      if (feedbacks.length === 1) {
+        baseHTML = itemsHTML.repeat(6);
+      } else if (feedbacks.length === 2) {
+        baseHTML = itemsHTML.repeat(3);
+      } else if (feedbacks.length <= 4) {
+        baseHTML = itemsHTML.repeat(2);
+      }
+
+      track1.innerHTML = baseHTML;
+      track2.innerHTML = baseHTML;
     }
 
     // Mulai inisialisasi dan timer polling
