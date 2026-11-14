@@ -84,16 +84,6 @@ function doGet(e) {
       result = getLiveDisplayData();
     } else if (action === "getMasterSchools") {
       result = { status: "success", schools: getMasterSchoolsList() };
-    } else if (action === "checkLogin") {
-      const password = e.parameter.password || "";
-      result = checkMarshalPassword(password);
-    } else if (action === "getMarshalData") {
-      const password = e.parameter.password || "";
-      if (checkMarshalPassword(password).authenticated) {
-        result = getMarshalDashboardData();
-      } else {
-        result = { status: "error", message: "Password Marshal salah" };
-      }
     }
 
     return respondJSON(result);
@@ -469,6 +459,30 @@ function getActiveEvent() {
 /**
  * Data khusus Layar Panggung / Proyektor (/live/) - Publik & Cepat
  */
+/**
+ * Menggabungkan seluruh isian teks/kata-kata responden dari semua pertanyaan
+ * (catatan mutu, catatan tempat, saran, dan rekomendasi) untuk layar panggung.
+ */
+function collectLiveFeedbackText(p) {
+  const parts = [];
+  const pushClean = (raw) => {
+    const clean = String(raw || "").replace(/[\r\n]+/g, " ").trim();
+    if (clean && clean !== "-") {
+      parts.push(clean);
+    }
+  };
+
+  (p.mutu || []).forEach((m) => pushClean(m.catatan));
+  (p.tempat || []).forEach((t) => pushClean(t.catatan));
+  pushClean(p.saran);
+  pushClean(p.rekomendasi);
+
+  return parts.join(" • ");
+}
+
+/**
+ * Data ringan untuk layar proyektor panggung (live/index.html)
+ */
 function getLiveDisplayData() {
   const activeEvent = getActiveEvent();
   if (activeEvent.status !== "ACTIVE") {
@@ -507,13 +521,12 @@ function getLiveDisplayData() {
       countBintangTmp++;
     }
 
-    if (p.saran && p.saran.length >= 4) {
-      let cleanText = String(p.saran).replace(/[\r\n]+/g, " ").trim();
-      if (cleanText.length > 140) cleanText = cleanText.substring(0, 137) + "...";
+    const combinedText = collectLiveFeedbackText(p);
+    if (combinedText.length >= 2) {
       liveFeedback.push({
         nama: p.mode === "ANONYMOUS" || p.mode === "RAHASIA" ? "Peserta" : (p.nama ? p.nama.split(" ")[0] : "Peserta"),
         sekolah: p.mode === "ANONYMOUS" || p.mode === "RAHASIA" ? "" : (p.sekolah || ""),
-        text: cleanText
+        text: combinedText
       });
     }
   }
@@ -535,7 +548,7 @@ function getLiveDisplayData() {
       avg_bintang_kegiatan: avgKegiatan,
       avg_bintang_tempat: avgTempat
     },
-    ticker_feedback: liveFeedback.slice(-15).reverse()
+    ticker_feedback: liveFeedback.reverse()
   };
 }
 
@@ -643,12 +656,39 @@ function getMarshalDashboardData() {
 /**
  * Membuka Kegiatan Baru oleh Marshal
  */
-function handleOpenEvent(params) {
-  // Cek auth password
-  const auth = checkMarshalPassword(params.password);
-  if (!auth.authenticated) {
-    return { status: "error", message: "Password Marshal tidak valid" };
+/**
+ * Menjalankan operasi tulis spreadsheet di bawah ScriptLock agar aman dari race condition.
+ */
+function withScriptLock(fn) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(15000)) {
+    return { status: "error", message: "Server sedang sibuk memproses antrean. Silakan coba kirim ulang beberapa detik lagi." };
   }
+  try {
+    return fn();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Mencegah formula injection di Google Sheets untuk teks input bebas dari pengguna.
+ */
+function sanitizeSheetCell(val) {
+  const str = String(val || "");
+  if (/^[=+\-@\t\r]/.test(str)) {
+    return "'" + str;
+  }
+  return str;
+}
+
+function handleOpenEvent(params) {
+  return withScriptLock(() => {
+    // Cek auth password
+    const auth = checkMarshalPassword(params.password);
+    if (!auth.authenticated) {
+      return { status: "error", message: "Password Marshal tidak valid" };
+    }
 
   const ss = getSpreadsheet();
   const giatSheet = ss.getSheetByName("KEGIATAN");
@@ -713,18 +753,20 @@ function handleOpenEvent(params) {
   }
   writeResponHeader(responSheet, pertanyaan);
 
-  return {
-    status: "success",
-    message: "Kegiatan berhasil dibuka untuk penilaian!",
-    event_id: newId
-  };
+    return {
+      status: "success",
+      message: "Kegiatan berhasil dibuka untuk penilaian!",
+      event_id: newId
+    };
+  });
 }
 
 /**
  * Menyimpan Penilaian Responden
  */
 function handleSubmitRating(params) {
-  const ss = getSpreadsheet();
+  return withScriptLock(() => {
+    const ss = getSpreadsheet();
   const responSheet = ss.getSheetByName("RESPON");
   if (!responSheet) {
     return { status: "error", message: "Database respon tidak ditemukan" };
@@ -796,9 +838,9 @@ function handleSubmitRating(params) {
 
   const mode = String(params.mode_identitas || "SMP").toUpperCase();
   const isAnon = (mode === "ANONYMOUS" || mode === "RAHASIA");
-  const nama = isAnon ? "(Anonim)" : (params.nama || "-");
-  const sekolah = isAnon ? "(Anonim)" : (params.asal_sekolah || "-");
-  const jabatan = isAnon ? "(Anonim)" : (params.jabatan || "-");
+  const nama = isAnon ? "(Anonim)" : sanitizeSheetCell(params.nama || "-");
+  const sekolah = isAnon ? "(Anonim)" : sanitizeSheetCell(params.asal_sekolah || "-");
+  const jabatan = isAnon ? "(Anonim)" : sanitizeSheetCell(params.jabatan || "-");
 
   const row = new Array(RESPON_TOTAL_COLS).fill("");
   row[RCOL.ID] = idRespon;
@@ -810,39 +852,41 @@ function handleSubmitRating(params) {
   row[RCOL.JABATAN] = jabatan;
   mutu.data.forEach((m, i) => {
     row[RCOL.MUTU_START + 2 * i] = m.nilai;
-    row[RCOL.MUTU_START + 2 * i + 1] = m.catatan;
+    row[RCOL.MUTU_START + 2 * i + 1] = sanitizeSheetCell(m.catatan);
   });
   row[RCOL.RATA_KEG] = rataKegiatan.toFixed(2);
   row[RCOL.BINTANG_KEG] = bintangKegiatan;
   tempat.data.forEach((t, j) => {
     row[RCOL.TEMPAT_START + 2 * j] = t.nilai;
-    row[RCOL.TEMPAT_START + 2 * j + 1] = t.catatan;
+    row[RCOL.TEMPAT_START + 2 * j + 1] = sanitizeSheetCell(t.catatan);
   });
   row[RCOL.RATA_TMP] = rataTempat !== "" ? rataTempat.toFixed(2) : "";
   row[RCOL.BINTANG_TMP] = bintangTempat;
-  row[RCOL.SARAN] = params.saran_masukan || "";
-  row[RCOL.REKOM] = params.rekomendasi_topik || "";
+  row[RCOL.SARAN] = sanitizeSheetCell(params.saran_masukan || "");
+  row[RCOL.REKOM] = sanitizeSheetCell(params.rekomendasi_topik || "");
 
   responSheet.appendRow(row);
 
-  return {
-    status: "success",
-    message: "Terima kasih, penilaian Anda telah tersimpan!",
-    bintang_kegiatan: bintangKegiatan,
-    bintang_tempat: bintangTempat,
-    is_lokasi_active: isLokasi
-  };
+    return {
+      status: "success",
+      message: "Terima kasih, penilaian Anda telah tersimpan!",
+      bintang_kegiatan: bintangKegiatan,
+      bintang_tempat: bintangTempat,
+      is_lokasi_active: isLokasi
+    };
+  });
 }
 
 /**
  * Menutup Acara & Mengarsipkan Sheet ke ARSIP_[nama_kegiatan]
  */
 function handleCloseAndArchiveEvent(params) {
-  // Cek Password
-  const auth = checkMarshalPassword(params.password);
-  if (!auth.authenticated) {
-    return { status: "error", message: "Password Marshal salah! Pengarsipan dibatalkan." };
-  }
+  return withScriptLock(() => {
+    // Cek Password
+    const auth = checkMarshalPassword(params.password);
+    if (!auth.authenticated) {
+      return { status: "error", message: "Password Marshal salah! Pengarsipan dibatalkan." };
+    }
 
   const ss = getSpreadsheet();
   const giatSheet = ss.getSheetByName("KEGIATAN");
@@ -894,11 +938,12 @@ function handleCloseAndArchiveEvent(params) {
     }
   }
 
-  return {
-    status: "success",
-    message: "Kegiatan berhasil diarsipkan ke tab '" + targetTabName + "' dan portal kini standby.",
-    archived_tab: targetTabName
-  };
+    return {
+      status: "success",
+      message: "Kegiatan berhasil diarsipkan ke tab '" + targetTabName + "' dan portal kini standby.",
+      archived_tab: targetTabName
+    };
+  });
 }
 
 /**
@@ -1026,8 +1071,8 @@ function handleAskGemini(params) {
     "- Rata-rata Bintang Kegiatan: " + avgBintang + " / 5.00\n" +
     (isLokasi ? "- Rata-rata Bintang Tempat: " + (countBintangTmp ? (totalBintangTmp / countBintangTmp).toFixed(2) : "-") + " / 5.00\n" : "") +
     "\n" + daftarPertanyaanText + "\n" +
-    "DATA LENGKAP SHEET RESPON (HANYA DARI KEGIATAN INI):\n" +
-    reviewsText.slice(0, 150).join("\n\n") + "\n\n" +
+    "DATA LENGKAP SHEET RESPON (HANYA DARI KEGIATAN INI" + (totalRespon > 250 ? ", MENAMPILKAN 250 RESPONDEN PERTAMA DARI " + totalRespon : "") + "):\n" +
+    reviewsText.slice(0, 250).join("\n\n") + "\n\n" +
     "PERTANYAAN / INSTRUKSI PANITIA:\n" +
     promptUser;
 

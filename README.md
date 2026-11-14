@@ -9,6 +9,8 @@ Aplikasi web modern evaluasi dan penilaian kegiatan kedinasan multi-event untuk 
 ```text
 Peniliaian Kegiatan SMP/
 ├── index.html              # Halaman Publik Responden (Splash Screen, Standby, Form, Dual Stars)
+├── live/
+│   └── index.html          # Layar Panggung / Proyektor Realtime (QR Code, Live Counter, Ticker)
 ├── marshal/
 │   └── index.html          # Panel Admin Marshal (Live Counter, Buka/Tutup, Jemprot AI, Export)
 ├── assets/
@@ -31,7 +33,7 @@ Peniliaian Kegiatan SMP/
 ### 1. Setup Backend Google Apps Script (GAS Standalone)
 1. Buka [script.google.com](https://script.google.com) dan klik **Proyek Baru**.
 2. Beri nama proyek, misalnya: `Backend Rating Giat SMP`.
-3. Salin seluruh isi file [`backend_gas/Code.gs`](file:///home/bayusigit/Project%20JP/Peniliaian%20Kegiatan%20SMP/backend_gas/Code.gs) dan tempel ke editor `Code.gs`.
+3. Salin seluruh isi file [`backend_gas/Code.gs`](backend_gas/Code.gs) dan tempel ke editor `Code.gs`.
 4. Pastikan baris `const SPREADSHEET_ID` adalah ID Spreadsheet Anda:  
    `1JZ0trXpmL6s2Fsu4yd-aLcFoEOO6SkLdyTjh9ziBy30`
 5. **Jalankan Setup Otomatis:**
@@ -52,7 +54,7 @@ Peniliaian Kegiatan SMP/
      * *Execute as:* **Me (email Anda)**
      * *Who has access:* **Anyone** (agar peserta dapat mengirim respon tanpa perlu login akun Google).
    * Klik **Deploy**, lalu salin **Web app URL** yang dihasilkan.
-8. Buka file [`assets/js/config.js`](file:///home/bayusigit/Project%20JP/Peniliaian%20Kegiatan%20SMP/assets/js/config.js), tempelkan URL tersebut pada properti `GAS_WEB_APP_URL`.
+8. Buka file [`assets/js/config.js`](assets/js/config.js), tempelkan URL tersebut pada properti `GAS_WEB_APP_URL`.
 
 ---
 
@@ -71,6 +73,7 @@ Untuk mempublikasikan aplikasi ini di GitHub:
 6. Tunggu sekitar 1–2 menit hingga GitHub selesai memproses.
 7. Alamat web Anda akan aktif secara langsung pada:
    * **Web Publik Responden:** `https://dikbudkra.github.io/rating_giat/`
+   * **Layar Panggung / Proyektor:** `https://dikbudkra.github.io/rating_giat/live/`
    * **Panel Admin Marshal:** `https://dikbudkra.github.io/rating_giat/marshal/`
 
 ---
