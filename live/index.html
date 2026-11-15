@@ -400,13 +400,14 @@
       <input 
         type="range" 
         id="slider-ticker-speed" 
-        min="5" 
-        max="70" 
-        value="45" 
+        min="1" 
+        max="5" 
+        step="1"
+        value="3" 
         oninput="updateTickerSpeed(this.value)" 
         class="w-16 sm:w-20 accent-amber-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
-        title="Atur Kecepatan Gerak Running Text">
-      <span id="val-ticker-speed" class="font-mono text-amber-400 font-extrabold w-6 text-right">45s</span>
+        title="Atur Kecepatan Gerak Running Text (1: Lambat - 5: Cepat)">
+      <span id="val-ticker-speed" class="text-amber-400 font-extrabold min-w-[64px] text-right whitespace-nowrap">Normal</span>
     </div>
 
     <!-- Tombol Layar Penuh -->
@@ -609,12 +610,18 @@
       return clean;
     }
 
-    // State Saklar & Kecepatan Suara Peserta
+    // State Saklar & 5 Level Kecepatan Konstan (px/detik)
+    const TICKER_SPEED_LEVELS = {
+      1: { label: "Lambat", px: 55 },
+      2: { label: "Sedang", px: 80 },
+      3: { label: "Normal", px: 105 },
+      4: { label: "Agak Cepat", px: 135 },
+      5: { label: "Cepat", px: 175 }
+    };
+
     let isTickerEnabled = localStorage.getItem("live_ticker_enabled") !== "false";
-    let tickerSpeed = parseInt(localStorage.getItem("live_ticker_speed") || "45", 10);
-    if (isNaN(tickerSpeed) || tickerSpeed < 5 || tickerSpeed > 70) {
-      tickerSpeed = 45;
-    }
+    let savedLevel = parseInt(localStorage.getItem("live_ticker_speed_level") || "3", 10);
+    let tickerSpeedLevel = (savedLevel >= 1 && savedLevel <= 5) ? savedLevel : 3;
     let lastRenderedFeedbackHash = "";
     let mouseIdleTimer = null;
 
@@ -673,29 +680,40 @@
       }
     });
 
-    // Terapkan kecepatan running text
+    // Hitung ulang durasi CSS agar kecepatan geser konstan (px/detik) berapapun panjang teksnya
+    function recalculateTickerDuration() {
+      const container = document.getElementById("ticker-container");
+      const track1 = document.getElementById("ticker-track-1");
+      const tracks = document.querySelectorAll(".ticker-track");
+      const preset = TICKER_SPEED_LEVELS[tickerSpeedLevel] || TICKER_SPEED_LEVELS[3];
+      const trackWidth = track1 && track1.scrollWidth > 0 ? track1.scrollWidth : 1200;
+      const durationSec = Math.max(6, trackWidth / preset.px).toFixed(2);
+
+      if (container) {
+        container.style.setProperty("--speed", `${durationSec}s`);
+      }
+      tracks.forEach(track => {
+        track.style.setProperty("--speed", `${durationSec}s`);
+      });
+    }
+
+    // Terapkan level kecepatan running text (1..5)
     function applyTickerSpeed(val) {
       const parsed = parseInt(val, 10);
-      tickerSpeed = !isNaN(parsed) ? Math.max(5, Math.min(70, parsed)) : 45;
-      const container = document.getElementById("ticker-container");
-      const tracks = document.querySelectorAll(".ticker-track");
+      tickerSpeedLevel = (parsed >= 1 && parsed <= 5) ? parsed : 3;
+      const preset = TICKER_SPEED_LEVELS[tickerSpeedLevel];
       const slider = document.getElementById("slider-ticker-speed");
       const valLabel = document.getElementById("val-ticker-speed");
 
-      if (container) {
-        container.style.setProperty("--speed", `${tickerSpeed}s`);
-      }
-      tracks.forEach(track => {
-        track.style.setProperty("--speed", `${tickerSpeed}s`);
-      });
-      if (slider) slider.value = tickerSpeed;
-      if (valLabel) valLabel.innerText = `${tickerSpeed}s`;
+      if (slider) slider.value = tickerSpeedLevel;
+      if (valLabel) valLabel.innerText = preset.label;
+      recalculateTickerDuration();
     }
 
     // Update kecepatan running text dari slider
     function updateTickerSpeed(val) {
       applyTickerSpeed(val);
-      localStorage.setItem("live_ticker_speed", String(tickerSpeed));
+      localStorage.setItem("live_ticker_speed_level", String(tickerSpeedLevel));
     }
 
     // Render running ticker suara peserta dengan Smart Cache Polling
@@ -719,6 +737,7 @@
           const baseContent = emptyItem.repeat(5);
           track1.innerHTML = baseContent;
           track2.innerHTML = baseContent;
+          requestAnimationFrame(recalculateTickerDuration);
         }
         return;
       }
@@ -757,13 +776,16 @@
 
       track1.innerHTML = baseHTML;
       track2.innerHTML = baseHTML;
+      requestAnimationFrame(recalculateTickerDuration);
     }
+
+    window.addEventListener("resize", recalculateTickerDuration);
 
     // Mulai inisialisasi dan timer polling
     window.addEventListener("DOMContentLoaded", () => {
       setupLiveQRCode();
       applyTickerState();
-      applyTickerSpeed(tickerSpeed);
+      applyTickerSpeed(tickerSpeedLevel);
       resetMouseIdle();
       fetchLiveDisplayData();
       pollingTimer = setInterval(fetchLiveDisplayData, POLLING_INTERVAL);
