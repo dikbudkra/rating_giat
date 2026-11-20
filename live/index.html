@@ -94,17 +94,7 @@
       color: rgba(255, 255, 255, 0.15);
     }
 
-    /* Keyframes Marquee Murni - 100% didukung semua browser & GPU accelerated */
-    @keyframes marqueeScroll {
-      0% {
-        transform: translateX(0%);
-      }
-      100% {
-        transform: translateX(-100%);
-      }
-    }
-
-    /* Marquee ticker container */
+    /* Marquee ticker container (FIFO Queue GPU-accelerated via requestAnimationFrame) */
     .ticker-wrap {
       width: 100%;
       overflow: hidden;
@@ -117,11 +107,7 @@
       align-items: center;
       flex-shrink: 0;
       white-space: nowrap;
-      animation: marqueeScroll var(--speed, 45s) linear infinite;
       will-change: transform;
-    }
-    .ticker-wrap:hover .ticker-track {
-      animation-play-state: paused;
     }
 
     /* Animasi Halus Sembunyikan / Tampilkan Bar Bawah */
@@ -359,13 +345,6 @@
             <span class="text-amber-500/50 mx-4 text-xl sm:text-2xl">✦</span>
           </div>
         </div>
-        <div id="ticker-track-2" class="ticker-track flex items-center gap-10 text-xl sm:text-2xl font-semibold text-slate-100 tracking-wide pr-10" aria-hidden="true">
-          <div class="inline-flex items-center gap-3">
-            <span class="text-amber-400 font-bold">INFO:</span>
-            <span class="text-slate-300 font-medium italic">"Menunggu masukan dari peserta kegiatan..."</span>
-            <span class="text-amber-500/50 mx-4 text-xl sm:text-2xl">✦</span>
-          </div>
-        </div>
       </div>
     </div>
   </footer>
@@ -539,6 +518,9 @@
         <span class="w-2 h-2 rounded-full bg-amber-400"></span>
         <span>STANDBY</span>
       `;
+      if (lastEventId !== null) {
+        resetTickerQueue();
+      }
       lastEventId = null;
     }
 
@@ -557,6 +539,7 @@
       // Jika ada pergantian kegiatan atau inisialisasi awal
       if (lastEventId !== data.event.id_kegiatan) {
         lastEventId = data.event.id_kegiatan;
+        resetTickerQueue();
         setupLiveQRCode();
       }
 
@@ -622,7 +605,6 @@
     let isTickerEnabled = localStorage.getItem("live_ticker_enabled") !== "false";
     let savedLevel = parseInt(localStorage.getItem("live_ticker_speed_level") || "3", 10);
     let tickerSpeedLevel = (savedLevel >= 1 && savedLevel <= 5) ? savedLevel : 3;
-    let lastRenderedFeedbackHash = "";
     let mouseIdleTimer = null;
 
     // Reset timer kursor mouse diam untuk Auto-Hide panel operator
@@ -680,21 +662,116 @@
       }
     });
 
-    // Hitung ulang durasi CSS agar kecepatan geser konstan (px/detik) berapapun panjang teksnya
-    function recalculateTickerDuration() {
+    // State Antrean FIFO Ticker Suara Peserta
+    let feedbackQueue = [];
+    let seenFeedbackKeys = new Set();
+    let nextQueueIndex = 0;
+    let isEmptyTicker = true;
+    let isTickerHovered = false;
+    let tickerOffsetPx = 0;
+    let lastTickTimestamp = 0;
+    let tickerRafId = null;
+
+    function resetTickerQueue() {
+      feedbackQueue = [];
+      seenFeedbackKeys.clear();
+      nextQueueIndex = 0;
+      isEmptyTicker = true;
+      tickerOffsetPx = 0;
+      const track1 = document.getElementById("ticker-track-1");
+      if (track1) {
+        track1.innerHTML = "";
+        track1.style.transform = "translate3d(0px, 0, 0)";
+      }
+    }
+
+    function escapeStageHTML(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function createTickerItemNode(item, queueIdx, isWrapped) {
+      const div = document.createElement("div");
+      div.className = "inline-flex items-center gap-3 flex-shrink-0";
+      div.dataset.queueIdx = String(queueIdx);
+      if (isWrapped) div.dataset.wrapped = "1";
+
+      if (item.__empty) {
+        div.innerHTML = `
+          <span class="text-amber-400 font-bold">INFO:</span>
+          <span class="text-slate-300 font-medium italic">"Menunggu masukan dari peserta kegiatan..."</span>
+          <span class="text-amber-500/50 mx-4 text-xl sm:text-2xl">✦</span>
+        `;
+      } else {
+        const sender = (item.sekolah && item.sekolah.trim())
+          ? item.sekolah.trim()
+          : (item.nama === "Peserta" || !item.nama ? "Responden Rahasia" : item.nama);
+        const text = sanitizeStageFeedback(item.text);
+        div.innerHTML = `
+          <span class="text-amber-400 font-bold">${escapeStageHTML(sender)}:</span>
+          <span class="text-slate-100 font-medium">"${escapeStageHTML(text)}"</span>
+          <span class="text-amber-500/50 mx-4 text-xl sm:text-2xl">✦</span>
+        `;
+      }
+      return div;
+    }
+
+    function ensureTickerBuffer() {
       const container = document.getElementById("ticker-container");
       const track1 = document.getElementById("ticker-track-1");
-      const tracks = document.querySelectorAll(".ticker-track");
-      const preset = TICKER_SPEED_LEVELS[tickerSpeedLevel] || TICKER_SPEED_LEVELS[3];
-      const trackWidth = track1 && track1.scrollWidth > 0 ? track1.scrollWidth : 1200;
-      const durationSec = Math.max(6, trackWidth / preset.px).toFixed(2);
+      if (!container || !track1) return;
 
-      if (container) {
-        container.style.setProperty("--speed", `${durationSec}s`);
+      const sourceList = isEmptyTicker ? [{ __empty: true }] : feedbackQueue;
+      if (!sourceList.length) return;
+
+      const minNeededWidth = (container.clientWidth || 1000) + 450;
+      let guard = 0;
+      while (track1.scrollWidth - tickerOffsetPx < minNeededWidth && guard < 30) {
+        const idx = nextQueueIndex % sourceList.length;
+        const isWrapped = !isEmptyTicker && track1.children.length >= sourceList.length;
+        track1.appendChild(createTickerItemNode(sourceList[idx], idx, isWrapped));
+        nextQueueIndex = (nextQueueIndex + 1) % sourceList.length;
+        guard++;
       }
-      tracks.forEach(track => {
-        track.style.setProperty("--speed", `${durationSec}s`);
-      });
+    }
+
+    function startTickerLoop() {
+      if (tickerRafId) return;
+      lastTickTimestamp = performance.now();
+
+      const step = (now) => {
+        const dt = Math.min((now - lastTickTimestamp) / 1000, 0.05);
+        lastTickTimestamp = now;
+
+        const track1 = document.getElementById("ticker-track-1");
+        if (track1 && isTickerEnabled && !isTickerHovered && track1.children.length > 0) {
+          const preset = TICKER_SPEED_LEVELS[tickerSpeedLevel] || TICKER_SPEED_LEVELS[3];
+          tickerOffsetPx += preset.px * dt;
+
+          // Hapus item paling kiri setelah benar-benar keluar layar agar memori & DOM tetap ringan
+          let firstEl = track1.firstElementChild;
+          while (firstEl) {
+            const firstWidth = firstEl.offsetWidth + 40; // 40px = gap-10 (2.5rem)
+            if (tickerOffsetPx >= firstWidth) {
+              tickerOffsetPx -= firstWidth;
+              firstEl.remove();
+              firstEl = track1.firstElementChild;
+            } else {
+              break;
+            }
+          }
+
+          ensureTickerBuffer();
+          track1.style.transform = `translate3d(${-tickerOffsetPx}px, 0, 0)`;
+        }
+
+        tickerRafId = requestAnimationFrame(step);
+      };
+
+      tickerRafId = requestAnimationFrame(step);
     }
 
     // Terapkan level kecepatan running text (1..5)
@@ -707,7 +784,6 @@
 
       if (slider) slider.value = tickerSpeedLevel;
       if (valLabel) valLabel.innerText = preset.label;
-      recalculateTickerDuration();
     }
 
     // Update kecepatan running text dari slider
@@ -716,77 +792,68 @@
       localStorage.setItem("live_ticker_speed_level", String(tickerSpeedLevel));
     }
 
-    // Render running ticker suara peserta dengan Smart Cache Polling
+    // Render running ticker suara peserta dengan sistem antrean FIFO (1 -> 2 -> 3 -> dst)
     function renderTickerFeedback(feedbacks) {
       const track1 = document.getElementById("ticker-track-1");
-      const track2 = document.getElementById("ticker-track-2");
-      if (!track1 || !track2) return;
+      if (!track1) return;
 
-      // Kondisi jika belum ada catatan masukan yang masuk
       if (!feedbacks || !feedbacks.length) {
-        const emptyHash = "__EMPTY__";
-        if (lastRenderedFeedbackHash !== emptyHash) {
-          lastRenderedFeedbackHash = emptyHash;
-          const emptyItem = `
-            <div class="inline-flex items-center gap-3">
-              <span class="text-amber-400 font-bold">INFO:</span>
-              <span class="text-slate-300 font-medium italic">"Menunggu masukan dari peserta kegiatan..."</span>
-              <span class="text-amber-500/50 mx-4 text-xl sm:text-2xl">✦</span>
-            </div>
-          `;
-          const baseContent = emptyItem.repeat(5);
-          track1.innerHTML = baseContent;
-          track2.innerHTML = baseContent;
-          requestAnimationFrame(recalculateTickerDuration);
+        if (!isEmptyTicker || track1.children.length === 0) {
+          resetTickerQueue();
+          isEmptyTicker = true;
+          ensureTickerBuffer();
         }
         return;
       }
 
-      // Smart Cache Check: Jika data masih identik, jangan timpa innerHTML agar animasi mengalir lancar
-      const currentHash = JSON.stringify(feedbacks);
-      if (currentHash === lastRenderedFeedbackHash) {
-        return;
-      }
-      lastRenderedFeedbackHash = currentHash;
-
-      // Render: Hanya menampilkan Asal Sekolah / Instansi (tanpa nama orang untuk menjaga privasi)
-      const itemsHTML = feedbacks.map(item => {
-        const sender = (item.sekolah && item.sekolah.trim())
-          ? item.sekolah.trim()
-          : (item.nama === "Peserta" || !item.nama ? "Responden Rahasia" : item.nama);
-        const text = sanitizeStageFeedback(item.text);
-        return `
-          <div class="inline-flex items-center gap-3">
-            <span class="text-amber-400 font-bold">${sender}:</span>
-            <span class="text-slate-100 font-medium">"${text}"</span>
-            <span class="text-amber-500/50 mx-4 text-xl sm:text-2xl">✦</span>
-          </div>
-        `;
-      }).join("");
-
-      // Pastikan panjang tiap track cukup lebar untuk layar proyektor
-      let baseHTML = itemsHTML;
-      if (feedbacks.length === 1) {
-        baseHTML = itemsHTML.repeat(6);
-      } else if (feedbacks.length === 2) {
-        baseHTML = itemsHTML.repeat(3);
-      } else if (feedbacks.length <= 4) {
-        baseHTML = itemsHTML.repeat(2);
+      // Jika sebelumnya dalam kondisi kosong ("Menunggu masukan..."), bersihkan dulu
+      if (isEmptyTicker) {
+        resetTickerQueue();
+        isEmptyTicker = false;
       }
 
-      track1.innerHTML = baseHTML;
-      track2.innerHTML = baseHTML;
-      requestAnimationFrame(recalculateTickerDuration);
+      // Tambahkan hanya komentar baru ke belakang antrean tanpa mengganggu teks yang sedang berjalan
+      const newlyAdded = [];
+      feedbacks.forEach((item, idx) => {
+        const key = item.id || `${idx}|${item.sekolah || ""}|${item.text || ""}`;
+        if (!seenFeedbackKeys.has(key)) {
+          seenFeedbackKeys.add(key);
+          const qIdx = feedbackQueue.length;
+          feedbackQueue.push(item);
+          newlyAdded.push({ item, qIdx });
+        }
+      });
+
+      if (newlyAdded.length > 0) {
+        // Jika putaran sudah sempat pre-buffer item awal (wrapped), sisipkan item baru tepat sebelum item wrapped pertama
+        const firstWrappedEl = track1.querySelector('[data-wrapped="1"]');
+        newlyAdded.forEach(({ item, qIdx }) => {
+          const node = createTickerItemNode(item, qIdx, false);
+          if (firstWrappedEl) {
+            track1.insertBefore(node, firstWrappedEl);
+          } else {
+            track1.appendChild(node);
+          }
+        });
+        ensureTickerBuffer();
+      }
     }
 
-    window.addEventListener("resize", recalculateTickerDuration);
+    window.addEventListener("resize", ensureTickerBuffer);
 
     // Mulai inisialisasi dan timer polling
     window.addEventListener("DOMContentLoaded", () => {
+      const tickerContainer = document.getElementById("ticker-container");
+      if (tickerContainer) {
+        tickerContainer.addEventListener("mouseenter", () => { isTickerHovered = true; });
+        tickerContainer.addEventListener("mouseleave", () => { isTickerHovered = false; });
+      }
       setupLiveQRCode();
       applyTickerState();
       applyTickerSpeed(tickerSpeedLevel);
       resetMouseIdle();
+      ensureTickerBuffer();
+      startTickerLoop();
       fetchLiveDisplayData();
       pollingTimer = setInterval(fetchLiveDisplayData, POLLING_INTERVAL);
     });

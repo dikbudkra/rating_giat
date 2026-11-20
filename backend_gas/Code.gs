@@ -524,6 +524,7 @@ function getLiveDisplayData() {
     const combinedText = collectLiveFeedbackText(p);
     if (combinedText.length >= 2) {
       liveFeedback.push({
+        id: p.id_respon || ("ROW-" + i),
         nama: p.mode === "ANONYMOUS" || p.mode === "RAHASIA" ? "Peserta" : (p.nama ? p.nama.split(" ")[0] : "Peserta"),
         sekolah: p.mode === "ANONYMOUS" || p.mode === "RAHASIA" ? "" : (p.sekolah || ""),
         text: combinedText
@@ -548,7 +549,7 @@ function getLiveDisplayData() {
       avg_bintang_kegiatan: avgKegiatan,
       avg_bintang_tempat: avgTempat
     },
-    ticker_feedback: liveFeedback.reverse()
+    ticker_feedback: liveFeedback
   };
 }
 
