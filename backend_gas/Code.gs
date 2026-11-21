@@ -1073,32 +1073,55 @@ function handleAskGemini(params) {
     (isLokasi ? "- Rata-rata Bintang Tempat: " + (countBintangTmp ? (totalBintangTmp / countBintangTmp).toFixed(2) : "-") + " / 5.00\n" : "") +
     "\n" + daftarPertanyaanText + "\n" +
     "DATA LENGKAP SHEET RESPON (HANYA DARI KEGIATAN INI" + (totalRespon > 250 ? ", MENAMPILKAN 250 RESPONDEN PERTAMA DARI " + totalRespon : "") + "):\n" +
-    reviewsText.slice(0, 250).join("\n\n") + "\n\n" +
-    "PERTANYAAN / INSTRUKSI PANITIA:\n" +
-    promptUser;
+    reviewsText.slice(0, 250).join("\n\n");
 
   const systemInstruction = 
-    "Anda adalah Asisten Analisis Data Kegiatan Bidang SMP Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar. " +
-    "Data di bawah diambil langsung dan lengkap dari Sheet RESPON Google Spreadsheet untuk kegiatan aktif saat ini. " +
-    "Daftar pertanyaan penilaian dapat berbeda di setiap kegiatan (standar atau custom), jadi selalu gunakan teks pertanyaan persis seperti di DAFTAR PERTANYAAN. " +
-    "Setiap nilai disertai alasan/catatan dari responden; gunakan catatan tersebut untuk menjelaskan mengapa nilai tinggi atau rendah. " +
-    "Jawab pertanyaan panitia secara profesional, ringkas, objektif, dan terstruktur berbasis data tersebut. " +
-    "Jika panitia menanyakan nama responden atau sekolah, sebutkan secara jelas dan presisi sesuai data. " +
-    "Jangan mengarang data di luar konteks Sheet RESPON yang diberikan.";
+    "Anda adalah R.A.D.I.T. (Robot Asisten Data dan Informasi Terpusat) untuk Bidang SMP Dinas Pendidikan dan Kebudayaan Kabupaten Karanganyar.\n\n" +
+    "ATURAN UTAMA (WAJIB DIPATUHI):\n" +
+    "1. BATAS TOPIK KETAT: Anda HANYA boleh menjawab pertanyaan yang berkaitan dengan data rating, skor, komentar, saran, rekomendasi topik, responden, sekolah, dan pelaksanaan kegiatan aktif di DATA LENGKAP SHEET RESPON yang diberikan. " +
+    "Jika pengguna bertanya hal di luar data evaluasi kegiatan ini (misalnya pengetahuan umum, berita, resep, coding, hiburan, curhat pribadi, atau data kegiatan lain), TOLAK dengan sopan dan ramah lalu arahkan kembali ke data penilaian kegiatan aktif.\n" +
+    "2. PAHAM BAHASA MANUSIA: Tangkap maksud pertanyaan manusia secara cerdas meskipun menggunakan bahasa santai, singkat, typo ringan, atau istilah sehari-hari. Contohnya: 'siapa paling pelit nilai' / 'komen pedes' -> cari skor terendah & kritik; 'makanan/snack/air' -> cek indikator Tempat/Konsumsi & catatan terkait; 'AC/sound/ruangan' -> cek fasilitas tempat; 'swasta/negeri/kecamatan X' -> filter berdasarkan nama sekolah; 'minta topik apa' -> kelompokkan rekomendasi topik.\n" +
+    "3. GAYA BAHASA MANUSIAWI: Jawab dengan bahasa Indonesia yang luwes, hangat, jelas, rapi, dan langsung ke inti seperti rekan kerja yang membantu panitia. Namun jika diminta membuat ringkasan eksekutif resmi atau laporan formal, gunakan gaya bahasa kedinasan yang rapi dan objektif.\n" +
+    "4. AKURASI & KEJUJURAN: Gunakan teks indikator persis seperti di DAFTAR PERTANYAAN, sertakan angka/nama responden/asal sekolah secara presisi sesuai data (atau sampaikan jujur jika responden memakai Mode Anonim atau data yang ditanyakan memang tidak ada). Dilarang keras mengarang data.\n" +
+    "5. KLARIFIKASI JIKA TIDAK PAHAM: Jika pertanyaan pengguna terasa ambigu, terlalu singkat, atau kurang jelas maksudnya (misalnya hanya menyebut kata yang meragukan atau bisa bermakna ganda), JANGAN menebak atau menjawab asal. Bertanyalah balik dengan sopan dan ramah untuk memastikan maksudnya (boleh sertakan 2-3 contoh pilihan yang dimaksud terkait data rating ini).";
+
+  // Susun percakapan multi-turn agar R.A.D.I.T. nyambung dengan pertanyaan sebelumnya
+  const contents = [
+    {
+      role: "user",
+      parts: [{ text: contextData }]
+    },
+    {
+      role: "model",
+      parts: [{ text: "Siap, saya R.A.D.I.T. Seluruh data rating dan masukan responden untuk kegiatan aktif sudah saya pahami. Silakan tanyakan apa saja terkait data penilaian tersebut." }]
+    }
+  ];
+
+  if (Array.isArray(params.history)) {
+    params.history.slice(-8).forEach((item) => {
+      if (item && item.text) {
+        contents.push({
+          role: item.role === "model" ? "model" : "user",
+          parts: [{ text: String(item.text).substring(0, 3000) }]
+        });
+      }
+    });
+  }
+
+  contents.push({
+    role: "user",
+    parts: [{ text: promptUser }]
+  });
 
   // Konfigurasi Payload Gemini
   const payload = {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: systemInstruction + "\n\n" + contextData }
-        ]
-      }
-    ],
+    systemInstruction: {
+      parts: [{ text: systemInstruction }]
+    },
+    contents: contents,
     generationConfig: {
-      temperature: 0.3,
-      maxOutputTokens: 1000
+      temperature: 0.25,
+      maxOutputTokens: 2048
     }
   };
 

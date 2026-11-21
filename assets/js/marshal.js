@@ -835,9 +835,11 @@ function getGeminiWelcomeCardHtml() {
 }
 
 let geminiChatSessionId = 0;
+let raditChatHistory = [];
 
 function resetGeminiChatUI() {
   geminiChatSessionId++;
+  raditChatHistory = [];
   const chatLog = document.getElementById("gemini-chat-log");
   if (chatLog) {
     chatLog.innerHTML = getGeminiWelcomeCardHtml();
@@ -946,11 +948,11 @@ async function sendPromptToGemini(questionText) {
   const botLoading = document.createElement("div");
   botLoading.className = "flex items-start gap-3 mb-3";
   botLoading.innerHTML = `
-    <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">
-      ✦
+    <div class="w-8 h-8 rounded-full bg-slate-950 overflow-hidden shadow-xs flex-shrink-0 mt-0.5">
+      <img src="../assets/img/radit-icon.png" alt="R.A.D.I.T." class="w-full h-full object-cover animate-pulse">
     </div>
     <div class="bg-white border border-slate-200 text-slate-600 rounded-2xl rounded-tl-none px-4 py-3 max-w-lg text-xs sm:text-sm shadow-xs flex items-center gap-2">
-      <span class="animate-spin text-purple-600 text-base">✦</span> Sedang membaca data evaluasi...
+      <span class="animate-spin text-purple-600 text-base">✦</span> R.A.D.I.T. sedang membaca data evaluasi...
     </div>
   `;
   chatLog.appendChild(botLoading);
@@ -962,7 +964,8 @@ async function sendPromptToGemini(questionText) {
       body: JSON.stringify({
         action: "askGemini",
         password: marshalPassword,
-        question: questionText
+        question: questionText,
+        history: raditChatHistory.slice(-8)
       })
     });
     const result = await res.json();
@@ -977,6 +980,11 @@ async function sendPromptToGemini(questionText) {
 
     if (result.status === "success") {
       latestAiSummary = result.answer; // Simpan untuk disematkan di laporan PDF/DOCX
+      raditChatHistory.push({ role: "user", text: questionText });
+      raditChatHistory.push({ role: "model", text: result.answer });
+      if (raditChatHistory.length > 12) {
+        raditChatHistory = raditChatHistory.slice(-12);
+      }
       botMsg.innerHTML = `
         <div class="w-8 h-8 rounded-full bg-slate-950 overflow-hidden shadow-xs flex-shrink-0 mt-0.5">
           <img src="../assets/img/radit-icon.png" alt="R.A.D.I.T." class="w-full h-full object-cover">
