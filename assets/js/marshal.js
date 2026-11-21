@@ -72,6 +72,87 @@ function initMarshal() {
   }, 800);
 
   setupEventListeners();
+  initMarshalTooltip();
+}
+
+/**
+ * Custom Tooltip Modern & Cepat (~300ms) untuk Tabel Pratinjau Marshal
+ */
+function initMarshalTooltip() {
+  if (document.getElementById("marshal-custom-tooltip")) return;
+
+  const tooltip = document.createElement("div");
+  tooltip.id = "marshal-custom-tooltip";
+  tooltip.className = "fixed z-50 hidden max-w-md w-max bg-slate-900/95 text-slate-100 border border-slate-700/80 border-l-4 border-l-amber-400 rounded-xl shadow-2xl p-3.5 backdrop-blur-md pointer-events-none transition-all duration-150 opacity-0 scale-95";
+  tooltip.innerHTML = `
+    <div id="marshal-tooltip-title" class="text-[10px] font-black uppercase tracking-wider text-amber-400 border-b border-white/10 pb-1.5 mb-2 flex items-center gap-1.5"></div>
+    <div id="marshal-tooltip-body" class="text-xs text-slate-100 leading-relaxed whitespace-pre-line"></div>
+  `;
+  document.body.appendChild(tooltip);
+
+  const titleEl = tooltip.querySelector("#marshal-tooltip-title");
+  const bodyEl = tooltip.querySelector("#marshal-tooltip-body");
+  let showTimer = null;
+  let activeTarget = null;
+
+  const positionTooltip = (anchorEl) => {
+    const rect = anchorEl.getBoundingClientRect();
+    const pad = 12;
+    const tipRect = tooltip.getBoundingClientRect();
+    let left = rect.left;
+    if (left + tipRect.width > window.innerWidth - pad) {
+      left = Math.max(pad, window.innerWidth - tipRect.width - pad);
+    }
+    let top = rect.bottom + 8;
+    if (top + tipRect.height > window.innerHeight - pad) {
+      top = Math.max(pad, rect.top - tipRect.height - 8);
+    }
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+
+  const hideTooltip = () => {
+    clearTimeout(showTimer);
+    activeTarget = null;
+    tooltip.classList.remove("opacity-100", "scale-100");
+    tooltip.classList.add("opacity-0", "scale-95");
+    setTimeout(() => {
+      if (!activeTarget) tooltip.classList.add("hidden");
+    }, 150);
+  };
+
+  document.addEventListener("mouseover", (e) => {
+    const cell = e.target.closest("[data-tooltip]");
+    if (!cell || cell === activeTarget) return;
+    const content = cell.getAttribute("data-tooltip") || "";
+    if (!content || content === "-") return;
+
+    clearTimeout(showTimer);
+    activeTarget = cell;
+    const title = cell.getAttribute("data-tooltip-title") || "Detail";
+
+    showTimer = setTimeout(() => {
+      if (activeTarget !== cell) return;
+      titleEl.textContent = title;
+      bodyEl.textContent = content;
+      tooltip.classList.remove("hidden");
+      positionTooltip(cell);
+      requestAnimationFrame(() => {
+        tooltip.classList.remove("opacity-0", "scale-95");
+        tooltip.classList.add("opacity-100", "scale-100");
+      });
+    }, 300);
+  });
+
+  document.addEventListener("mouseout", (e) => {
+    const cell = e.target.closest("[data-tooltip]");
+    if (cell && cell === activeTarget && !cell.contains(e.relatedTarget)) {
+      hideTooltip();
+    }
+  });
+
+  window.addEventListener("scroll", hideTooltip, true);
+  document.addEventListener("mousedown", hideTooltip);
 }
 
 /**
@@ -261,8 +342,8 @@ function renderResponsesTable(responses) {
       <td class="py-3 px-3">
         <span class="inline-flex items-center gap-1 font-bold text-amber-600">★ ${r.bintang_kegiatan}</span>
       </td>
-      <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${feedbackText.replace(/"/g, '&quot;')}">${feedbackText}</td>
-      <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${saranRekomText.replace(/"/g, '&quot;')}">${saranRekomText}</td>
+      <td class="py-3 px-3 text-slate-700 max-w-xs truncate cursor-help" data-tooltip-title="Komentar Peserta" data-tooltip="${feedbackText.replace(/"/g, '&quot;')}">${feedbackText}</td>
+      <td class="py-3 px-3 text-slate-700 max-w-xs truncate cursor-help" data-tooltip-title="Saran, Masukan & Rekomendasi Topik" data-tooltip="${saranRekomText.replace(/"/g, '&quot;')}">${saranRekomText}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -612,11 +693,11 @@ function setupEventListeners() {
     };
   }
 
-  // Helper memastikan Rangkuman Penilaian Jemprot AI otomatis dibuat sebelum ekspor jika belum ada
+  // Helper memastikan Rangkuman Penilaian R.A.D.I.T. otomatis dibuat sebelum ekspor jika belum ada
   async function ensureAiSummaryBeforeExport() {
     if (!latestAiSummary && currentDashboardData && currentDashboardData.metrics && currentDashboardData.metrics.total_responden > 0) {
       try {
-        showLoader("Menyusun Rangkuman Penilaian resmi via Jemprot AI...");
+        showLoader("Menyusun Rangkuman Penilaian resmi via R.A.D.I.T....");
         const res = await fetch(CONFIG.GAS_WEB_APP_URL, {
           method: "POST",
           body: JSON.stringify({
@@ -630,7 +711,7 @@ function setupEventListeners() {
           latestAiSummary = result.answer;
         }
       } catch (e) {
-        console.warn("Gagal auto-generate Jemprot AI summary:", e);
+        console.warn("Gagal auto-generate R.A.D.I.T. summary:", e);
       } finally {
         hideLoader();
       }
@@ -715,16 +796,16 @@ function setupEventListeners() {
 }
 
 /**
- * Logika Asisten Data Jemprot AI (Sesuai Referensi Pengguna)
+ * Logika R.A.D.I.T. (Robot Asisten Data dan Informasi Terpusat)
  */
 function getGeminiWelcomeCardHtml() {
   return `
     <div class="flex items-start gap-3">
-      <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">
-        ✦
+      <div class="w-8 h-8 rounded-full bg-slate-950 overflow-hidden shadow-xs flex-shrink-0 mt-0.5">
+        <img src="../assets/img/radit-icon.png" alt="R.A.D.I.T." class="w-full h-full object-cover">
       </div>
       <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3 flex-1 max-w-2xl">
-        <div class="font-bold text-sm text-slate-800">Asisten Data Kegiatan</div>
+        <div class="font-bold text-sm text-slate-800">R.A.D.I.T. — Robot Asisten Data dan Informasi Terpusat</div>
         <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
           Halo Panitia! Saya siap membantu menjawab pertanyaan seputar hasil evaluasi dan penilaian kegiatan yang sedang aktif saat ini.
         </p>
@@ -897,12 +978,12 @@ async function sendPromptToGemini(questionText) {
     if (result.status === "success") {
       latestAiSummary = result.answer; // Simpan untuk disematkan di laporan PDF/DOCX
       botMsg.innerHTML = `
-        <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">
-          ✦
+        <div class="w-8 h-8 rounded-full bg-slate-950 overflow-hidden shadow-xs flex-shrink-0 mt-0.5">
+          <img src="../assets/img/radit-icon.png" alt="R.A.D.I.T." class="w-full h-full object-cover">
         </div>
         <div class="bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-none p-4 sm:p-5 max-w-xl text-xs sm:text-sm shadow-xs leading-relaxed space-y-1.5 flex-1">
           <div class="font-bold text-purple-700 text-xs flex items-center gap-1.5 mb-1">
-            <span>✦</span> Asisten Jemprot AI
+            <span>✦</span> R.A.D.I.T.
           </div>
           <div class="prose prose-sm text-slate-800 leading-relaxed text-xs sm:text-sm">
             ${formatMarkdown(result.answer)}
@@ -931,7 +1012,7 @@ async function sendPromptToGemini(questionText) {
     botErr.className = "flex items-start gap-3 mb-3";
     botErr.innerHTML = `
       <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0 mt-0.5">⚠️</div>
-      <div class="bg-red-50 text-red-600 rounded-xl px-4 py-2 text-xs sm:text-sm">Gagal terhubung ke Asisten Jemprot AI.</div>
+      <div class="bg-red-50 text-red-600 rounded-xl px-4 py-2 text-xs sm:text-sm">Gagal terhubung ke Asisten R.A.D.I.T..</div>
     `;
     chatLog.appendChild(botErr);
   }

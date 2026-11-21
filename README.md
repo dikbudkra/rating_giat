@@ -12,14 +12,14 @@ Peniliaian Kegiatan SMP/
 ├── live/
 │   └── index.html          # Layar Panggung / Proyektor Realtime (QR Code, Live Counter, Ticker)
 ├── marshal/
-│   └── index.html          # Panel Admin Marshal (Live Counter, Buka/Tutup, Jemprot AI, Export)
+│   └── index.html          # Panel Admin Marshal (Live Counter, Buka/Tutup, R.A.D.I.T., Export)
 ├── assets/
 │   ├── css/
 │   │   └── style.css       # Styling tema Terracotta Kedinasan & animasi
 │   └── js/
 │       ├── config.js       # Konfigurasi URL Google Apps Script Web App
 │       ├── app.js          # Logika responden & anti-spam mutlak
-│       ├── marshal.js      # Logika admin & chat widget Jemprot AI
+│       ├── marshal.js      # Logika admin & chat widget R.A.D.I.T.
 │       └── export.js       # Generator laporan resmi PDF & DOCX
 ├── backend_gas/
 │   └── Code.gs             # Backend Google Apps Script (Spreadsheet & Gemini Proxy)

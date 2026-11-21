@@ -192,7 +192,7 @@ window.ExportEngine = {
       currentY = doc.lastAutoTable.finalY + 6;
     }
 
-    // Bagian Rangkuman Asisten Jemprot AI (Jika Ada)
+    // Bagian Rangkuman Asisten R.A.D.I.T. (Jika Ada)
     if (aiSummary && aiSummary.trim() !== "") {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);

@@ -247,7 +247,7 @@ function normalizePertanyaan(raw, isLokasi) {
 
 /**
  * Menulis ulang baris judul Sheet RESPON sesuai teks pertanyaan kegiatan aktif,
- * sehingga arsip & Jemprot AI tahu persis arti setiap kolom.
+ * sehingga arsip & R.A.D.I.T. tahu persis arti setiap kolom.
  */
 function writeResponHeader(sheet, pertanyaan) {
   const headers = ["id_respon", "id_kegiatan", "timestamp", "mode_identitas", "nama", "asal_sekolah", "jabatan"];
