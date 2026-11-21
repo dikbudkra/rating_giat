@@ -7,6 +7,22 @@ window.ExportEngine = {
   docxDownloaded: false,
 
   /**
+   * Membersihkan tanda markdown mentah (**bold**, *italic*, # heading, dll.)
+   * agar rapi saat dicetak ke PDF maupun DOCX.
+   */
+  cleanMarkdownText(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/\*([^*\n]+)\*/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/^\s*[\*-]\s+/gm, "• ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  },
+
+  /**
    * Helper format catatan evaluasi dan saran masukan agar bersih, rapi, dan mudah dibaca
    */
   formatFeedback(r) {
@@ -123,14 +139,14 @@ window.ExportEngine = {
     if (qStats.mutu && qStats.mutu.length > 0) {
       qStats.mutu.forEach(m => {
         const starVal = (parseFloat(m.rata_rata) / 2).toFixed(2);
-        aspectRows.push([m.label, m.pertanyaan, m.rata_rata + " / 10", starVal + " ★"]);
+        aspectRows.push([m.label, m.pertanyaan, m.rata_rata + " / 10", starVal + " / 5.00"]);
       });
     }
 
     if (metrics.is_lokasi_active && qStats.tempat && qStats.tempat.length > 0) {
       qStats.tempat.forEach(t => {
         const starVal = (parseFloat(t.rata_rata) / 2).toFixed(2);
-        aspectRows.push([t.label, t.pertanyaan, t.rata_rata + " / 10", starVal + " ★"]);
+        aspectRows.push([t.label, t.pertanyaan, t.rata_rata + " / 10", starVal + " / 5.00"]);
       });
     }
 
@@ -169,10 +185,11 @@ window.ExportEngine = {
       doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
 
-      const splitSummary = doc.splitTextToSize(aiSummary, 182);
+      const cleanSummary = this.cleanMarkdownText(aiSummary);
+      const splitSummary = doc.splitTextToSize(cleanSummary, 182);
       doc.text(splitSummary, 14, currentY + 5, {
         maxWidth: 182,
-        align: "justify"
+        align: "left"
       });
 
       currentY = currentY + 7 + (splitSummary.length * 4.2);
@@ -188,7 +205,7 @@ window.ExportEngine = {
       idx + 1,
       r.mode === "ANONYMOUS" || r.mode === "RAHASIA" ? "(Anonim)" : r.nama,
       r.mode === "ANONYMOUS" || r.mode === "RAHASIA" ? "-" : r.sekolah,
-      r.bintang_kegiatan + " ★",
+      r.bintang_kegiatan + " / 5.00",
       this.formatFeedback(r),
       r.rekomendasi || "-"
     ]);
@@ -329,7 +346,7 @@ window.ExportEngine = {
         ${aiSummary ? `
         <div class="ai-box">
           <h4 style="color: #6B21A8; margin-top: 0;">Rangkuman Penilaian Kegiatan</h4>
-          <p style="text-align: justify; margin-bottom: 0;">${aiSummary.replace(/\n/g, "<br/>")}</p>
+          <p style="text-align: left; margin-bottom: 0;">${this.cleanMarkdownText(aiSummary).replace(/\n/g, "<br/>")}</p>
         </div>` : ""}
 
         <h3>${aspectRowsHtml ? "C" : "B"}. Rekapitulasi Masukan dan Umpan Balik Peserta</h3>
