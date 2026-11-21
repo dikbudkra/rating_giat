@@ -244,9 +244,13 @@ function renderResponsesTable(responses) {
   responses.forEach((r, idx) => {
     const tr = document.createElement("tr");
     tr.className = "border-b border-slate-100 hover:bg-slate-50 transition text-sm";
+    const qStats = currentDashboardData ? currentDashboardData.question_stats : null;
     const feedbackText = (window.ExportEngine && typeof window.ExportEngine.formatFeedback === "function")
-      ? window.ExportEngine.formatFeedback(r)
+      ? window.ExportEngine.formatFeedback(r, qStats)
       : (r.saran || "-");
+    const saranRekomText = (window.ExportEngine && typeof window.ExportEngine.formatSaranAndRekomendasi === "function")
+      ? window.ExportEngine.formatSaranAndRekomendasi(r)
+      : (r.rekomendasi || "-");
 
     tr.innerHTML = `
       <td class="py-3 px-3 text-slate-500 font-semibold">${idx + 1}</td>
@@ -258,7 +262,7 @@ function renderResponsesTable(responses) {
         <span class="inline-flex items-center gap-1 font-bold text-amber-600">★ ${r.bintang_kegiatan}</span>
       </td>
       <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${feedbackText.replace(/"/g, '&quot;')}">${feedbackText}</td>
-      <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${(r.rekomendasi || '-').replace(/"/g, '&quot;')}">${r.rekomendasi || "-"}</td>
+      <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${saranRekomText.replace(/"/g, '&quot;')}">${saranRekomText}</td>
     `;
     tbody.appendChild(tr);
   });

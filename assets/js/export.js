@@ -23,11 +23,27 @@ window.ExportEngine = {
   },
 
   /**
-   * Helper format catatan evaluasi dan saran masukan agar bersih, rapi, dan mudah dibaca
+   * Helper membersihkan teks Saran & Masukan umum dari tag format lama
    */
-  formatFeedback(r) {
+  extractCleanSaran(r) {
+    if (!r) return "";
+    const rawSaran = String(r.saran_murni || r.saran || "").trim();
+    const cleanSaran = rawSaran
+      .replace(/\[(?:Tempat\s+)?[A-Z]\.[^\]]+\][^\n\r]*/gi, "")
+      .replace(/^Saran:\s*/gim, "")
+      .replace(/[\n\r]+/g, " ")
+      .trim();
+    return (cleanSaran && cleanSaran !== "-" && cleanSaran !== '""') ? cleanSaran : "";
+  },
+
+  /**
+   * Helper format Komentar Peserta per indikator pertanyaan (tanpa saran umum)
+   */
+  formatFeedback(r, qStats) {
     if (!r) return "-";
     const items = [];
+    const mutuList = (qStats && Array.isArray(qStats.mutu)) ? qStats.mutu : [];
+    const tempatList = (qStats && Array.isArray(qStats.tempat)) ? qStats.tempat : [];
 
     // 1. Catatan Evaluasi Penilaian (dari data terstruktur)
     if (Array.isArray(r.nilai_mutu)) {
@@ -35,7 +51,8 @@ window.ExportEngine = {
         const c = (m.catatan || "").trim();
         if (c) {
           const huruf = String.fromCharCode(65 + idx);
-          items.push(`• Poin ${huruf} (${m.nilai}): ${c}`);
+          const indikator = m.pertanyaan || (mutuList[idx] && mutuList[idx].pertanyaan) || `Poin ${huruf}`;
+          items.push(`• ${indikator} (${m.nilai}): ${c}`);
         }
       });
     }
@@ -44,42 +61,43 @@ window.ExportEngine = {
         const c = (t.catatan || "").trim();
         if (c) {
           const huruf = String.fromCharCode(65 + jdx);
-          items.push(`• Tempat ${huruf} (${t.nilai}): ${c}`);
+          const indikator = t.pertanyaan || (tempatList[jdx] && tempatList[jdx].pertanyaan) || `Tempat ${huruf}`;
+          items.push(`• ${indikator} (${t.nilai}): ${c}`);
         }
       });
     }
 
-    // 2. Saran & Masukan Umum
-    let rawSaran = String(r.saran_murni || r.saran || "").trim();
-    let cleanSaran = rawSaran
-      .replace(/\[(?:Tempat\s+)?[A-Z]\.[^\]]+\][^\n\r]*/gi, "")
-      .replace(/^Saran:\s*/gim, "")
-      .replace(/[\n\r]+/g, " ")
-      .trim();
-
     // Fallback jika data lama dan items masih kosong
+    const rawSaran = String(r.saran_murni || r.saran || "").trim();
     if (items.length === 0 && rawSaran.includes("[")) {
       const lines = rawSaran.split(/[\r\n]+/);
       lines.forEach(line => {
-        const match = line.match(/\[([A-Z])\.[^=]+=\s*(\d+)\]\s*(.*)/i);
-        const matchTempat = line.match(/\[Tempat\s+([A-Z])\.[^=]+=\s*(\d+)\]\s*(.*)/i);
-        if (match) {
-          items.push(`• Poin ${match[1].toUpperCase()} (${match[2]}): ${match[3].trim()}`);
-        } else if (matchTempat) {
-          items.push(`• Tempat ${matchTempat[1].toUpperCase()} (${matchTempat[2]}): ${matchTempat[3].trim()}`);
+        const match = line.match(/\[([A-Z])\.\s*([^=\]]+)=\s*(\d+)\]\s*(.*)/i);
+        const matchTempat = line.match(/\[Tempat\s+([A-Z])\.\s*([^=\]]+)=\s*(\d+)\]\s*(.*)/i);
+        if (matchTempat) {
+          const label = matchTempat[2].trim() || `Tempat ${matchTempat[1].toUpperCase()}`;
+          items.push(`• ${label} (${matchTempat[3]}): ${matchTempat[4].trim()}`);
+        } else if (match) {
+          const label = match[2].trim() || `Poin ${match[1].toUpperCase()}`;
+          items.push(`• ${label} (${match[3]}): ${match[4].trim()}`);
         }
       });
     }
 
-    if (cleanSaran && cleanSaran !== "-" && cleanSaran !== '""') {
-      if (items.length > 0) {
-        items.push(`• Saran: ${cleanSaran}`);
-      } else {
-        items.push(cleanSaran);
-      }
-    }
-
     return items.length > 0 ? items.join("\n") : "-";
+  },
+
+  /**
+   * Helper format kolom Saran, Masukan & Rekomendasi Topik
+   */
+  formatSaranAndRekomendasi(r) {
+    if (!r) return "-";
+    const saran = this.extractCleanSaran(r);
+    const rekomRaw = String(r.rekomendasi || "").trim();
+    const rekom = (rekomRaw && rekomRaw !== "-" && rekomRaw !== '""') ? rekomRaw : "";
+
+    if (!saran && !rekom) return "-";
+    return `Saran & Masukan: ${saran || "-"}\nRekomendasi Topik: ${rekom || "-"}`;
   },
 
   /**
@@ -206,24 +224,24 @@ window.ExportEngine = {
       r.mode === "ANONYMOUS" || r.mode === "RAHASIA" ? "(Anonim)" : r.nama,
       r.mode === "ANONYMOUS" || r.mode === "RAHASIA" ? "-" : r.sekolah,
       r.bintang_kegiatan + " / 5.00",
-      this.formatFeedback(r),
-      r.rekomendasi || "-"
+      this.formatFeedback(r, qStats),
+      this.formatSaranAndRekomendasi(r)
     ]);
 
     doc.autoTable({
       startY: currentY + 3,
-      head: [["No", "Nama", "Asal Instansi / Sekolah", "Nilai", "Saran & Masukan", "Rekomendasi Topik"]],
+      head: [["No", "Nama", "Asal Instansi / Sekolah", "Nilai", "Komentar Peserta", "Saran, Masukan & Rekomendasi Topik"]],
       body: tableRows,
       theme: "striped",
       headStyles: { fillColor: [196, 67, 0], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
       styles: { fontSize: 8, cellPadding: 2, overflow: "linebreak" },
       columnStyles: {
         0: { cellWidth: 8, halign: "center" },
-        1: { cellWidth: 28 },
-        2: { cellWidth: 32 },
-        3: { cellWidth: 15, halign: "center" },
-        4: { cellWidth: 50 },
-        5: { cellWidth: 47 }
+        1: { cellWidth: 26 },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 16, halign: "center" },
+        4: { cellWidth: 58 },
+        5: { cellWidth: 44 }
       }
     });
 
@@ -284,15 +302,16 @@ window.ExportEngine = {
     let rowsHtml = "";
     responses.forEach((r, idx) => {
       const isAnon = (r.mode === "ANONYMOUS" || r.mode === "RAHASIA");
-      const cleanSaran = this.formatFeedback(r).replace(/\n/g, "<br/>");
+      const komentarHtml = this.formatFeedback(r, qStats).replace(/\n/g, "<br/>");
+      const saranRekomHtml = this.formatSaranAndRekomendasi(r).replace(/\n/g, "<br/>");
       rowsHtml += `
         <tr>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
           <td style="border: 1px solid #ddd; padding: 6px;">${isAnon ? "<i>(Anonim)</i>" : r.nama}</td>
           <td style="border: 1px solid #ddd; padding: 6px;">${isAnon ? "-" : r.sekolah}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;"><b>${r.bintang_kegiatan} ★</b></td>
-          <td style="border: 1px solid #ddd; padding: 6px;">${cleanSaran || "-"}</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">${r.rekomendasi || "-"}</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">${komentarHtml || "-"}</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">${saranRekomHtml || "-"}</td>
         </tr>
       `;
     });
@@ -354,11 +373,11 @@ window.ExportEngine = {
           <thead>
             <tr>
               <th width="5%" style="text-align: center;">No</th>
-              <th width="20%">Nama</th>
-              <th width="20%">Asal Sekolah / Instansi</th>
+              <th width="18%">Nama</th>
+              <th width="17%">Asal Sekolah / Instansi</th>
               <th width="10%" style="text-align: center;">Nilai</th>
-              <th width="25%">Saran & Masukan</th>
-              <th width="20%">Rekomendasi Topik</th>
+              <th width="28%">Komentar Peserta</th>
+              <th width="22%">Saran, Masukan & Rekomendasi Topik</th>
             </tr>
           </thead>
           <tbody>
