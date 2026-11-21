@@ -97,7 +97,7 @@ window.ExportEngine = {
     const rekom = (rekomRaw && rekomRaw !== "-" && rekomRaw !== '""') ? rekomRaw : "";
 
     if (!saran && !rekom) return "-";
-    return `Saran & Masukan: ${saran || "-"}\nRekomendasi Topik: ${rekom || "-"}`;
+    return `Saran & Masukan: ${saran || "-"}\n\nRekomendasi Topik: ${rekom || "-"}`;
   },
 
   /**

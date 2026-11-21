@@ -979,7 +979,6 @@ async function sendPromptToGemini(questionText) {
     botMsg.className = "flex items-start gap-3 mb-3";
 
     if (result.status === "success") {
-      latestAiSummary = result.answer; // Simpan untuk disematkan di laporan PDF/DOCX
       raditChatHistory.push({ role: "user", text: questionText });
       raditChatHistory.push({ role: "model", text: result.answer });
       if (raditChatHistory.length > 12) {
